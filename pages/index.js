@@ -52,7 +52,7 @@ const ProfilePage = () => {
 
         {/* Introduction with fade-in animation */}
         <div className="text-center mb-12 animate-fadeIn">
-          <h1 className="text-4xl font-bold mb-4 text-white">John Doe</h1>
+          <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
           <p className="text-xl text-red-100 mb-6">
             Web Developer & Digital Creator
           </p>
