@@ -65,7 +65,7 @@ const ProfilePage = () => {
         {/* Social Media Links with hover animation */}
         <div className="space-y-4 max-w-md mx-auto">
           <a
-            href="https://instagram.com/fathy847"
+            href="https://instagram.com/fathy_847"
             className="flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md hover:scale-105 hover:bg-white/20 transition-all duration-300"
           >
             <Instagram className="w-6 h-6 mr-3" />
