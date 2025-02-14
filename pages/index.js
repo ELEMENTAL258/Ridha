@@ -1,4 +1,4 @@
-import { Instagram, Youtube, Twitter, Phone, Volume2, VolumeX } from 'lucide-react';
+import { Instagram, Youtube, Twitter, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const Sparkle = ({ style }) => (
@@ -8,9 +8,47 @@ const Sparkle = ({ style }) => (
   />
 );
 
+const AudioPlayer = () => {
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const handleTimeUpdate = (e) => {
+    setCurrentTime(e.target.currentTime);
+  };
+
+  const handleLoadedMetadata = (e) => {
+    setDuration(e.target.duration);
+  };
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md p-4 z-50">
+      <div className="max-w-3xl mx-auto">
+        <p className="text-white mb-2 text-center">Hu Tao BGM</p>
+        <audio
+          className="w-full"
+          controls
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+        >
+          <source src="/bgm.mp3" type="audio/mp3" />
+          Your browser does not support the audio element.
+        </audio>
+        <div className="text-white text-sm text-center mt-1">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     const generateSparkles = () => {
@@ -31,51 +69,8 @@ const ProfilePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Load YouTube IFrame API
-  useEffect(() => {
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-    window.onYouTubeIframeAPIReady = () => {
-      new window.YT.Player('youtube-player', {
-        videoId: 'ekW-i0KlU1U',
-        playerVars: {
-          autoplay: 1,
-          loop: 1,
-          playlist: 'ekW-i0KlU1U',
-          controls: 0,
-          showinfo: 0,
-          mute: 1, // Start muted to comply with autoplay policies
-        },
-        events: {
-          onReady: (event) => {
-            event.target.playVideo();
-          }
-        }
-      });
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400">
-      {/* YouTube Player (hidden) */}
-      <div className="hidden">
-        <div id="youtube-player"></div>
-      </div>
-
-      {/* Music Control Button */}
-      <button
-        onClick={() => setIsMuted(!isMuted)}
-        className="fixed top-4 right-4 z-50 p-3 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-all duration-300"
-      >
-        {isMuted ? 
-          <VolumeX className="w-6 h-6 text-white" /> : 
-          <Volume2 className="w-6 h-6 text-white" />
-        }
-      </button>
-
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
       {/* Sparkles */}
       {sparkles.map((sparkle) => (
         <Sparkle key={sparkle.id} style={sparkle.style} />
@@ -149,6 +144,9 @@ const ProfilePage = () => {
           </a>
         </div>
       </main>
+
+      {/* Audio Player */}
+      <AudioPlayer />
     </div>
   );
 };
