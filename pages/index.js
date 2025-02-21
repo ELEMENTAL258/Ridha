@@ -1,6 +1,7 @@
 import { Instagram, Youtube, Twitter, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import './styles.css'; // Impor CSS terpisah
 
 const Sparkle = ({ style }) => (
   <div 
@@ -48,7 +49,6 @@ const AudioPlayer = () => {
   );
 };
 
-// Komponen Chat Widget dengan Blackbox AI (tanpa API Key)
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -58,20 +58,17 @@ const ChatWidget = () => {
   const handleSend = async () => {
     if (input.trim() === '') return;
 
-    // Tambahkan pesan pengguna ke daftar
     const userMessage = { sender: 'user', text: input };
     setMessages([...messages, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      // Panggil API Blackbox AI seperti fungsi deepseek
       const { data } = await axios.post("https://api.blackbox.ai/api/chat", {
         messages: [{ id: null, role: "user", content: input }],
         userSelectedModel: "deepseek-v3"
       });
 
-      // Ambil respons dari Blackbox AI
       const botResponse = data || 'Saya tidak mengerti, coba lagi!';
       setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
     } catch (error) {
@@ -138,33 +135,33 @@ const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
 
   useEffect(() => {
-    const generateSparkles = () => {
-      const newSparkles = Array.from({ length: 20 }, (_, i) => ({
-        id: i,
-        style: {
-          top: `${Math.random() * 100}%`,
-          left: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 2}s`,
-          opacity: Math.random(),
-        }
-      }));
-      setSparkles(newSparkles);
-    };
+    if (typeof window !== 'undefined') { // Pastikan hanya dijalankan di klien
+      const generateSparkles = () => {
+        const newSparkles = Array.from({ length: 20 }, (_, i) => ({
+          id: i,
+          style: {
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 2}s`,
+            opacity: Math.random(),
+          }
+        }));
+        setSparkles(newSparkles);
+      };
 
-    generateSparkles();
-    const interval = setInterval(generateSparkles, 3000);
-    return () => clearInterval(interval);
+      generateSparkles();
+      const interval = setInterval(generateSparkles, 3000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
-      {/* Sparkles */}
       {sparkles.map((sparkle) => (
         <Sparkle key={sparkle.id} style={sparkle.style} />
       ))}
 
       <main className="max-w-3xl mx-auto px-4 py-16 relative z-10">
-        {/* Profile Image with glow effect */}
         <div className="flex justify-center mb-8">
           <div className="relative w-48 h-48">
             <div className="absolute inset-0 bg-red-300 rounded-full blur-md animate-pulse" />
@@ -176,7 +173,6 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Introduction with fade-in animation */}
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
           <p className="text-xl text-red-100 mb-6">
@@ -188,7 +184,6 @@ const ProfilePage = () => {
           </p>
         </div>
 
-        {/* Social Media Links with hover animation */}
         <div className="space-y-4 max-w-md mx-auto">
           <a
             href="https://instagram.com/fathy_847"
@@ -232,41 +227,10 @@ const ProfilePage = () => {
         </div>
       </main>
 
-      {/* Audio Player */}
       <AudioPlayer />
-
-      {/* Chat Widget dengan Blackbox AI */}
       <ChatWidget />
     </div>
   );
 };
-
-// Add required keyframes
-const styles = `
-  @keyframes twinkle {
-    0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
-    50% { transform: scale(1) rotate(180deg); opacity: 1; }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate-twinkle {
-    animation: twinkle 3s infinite;
-  }
-
-  .animate-fadeIn {
-    animation: fadeIn 1s ease-out forwards;
-  }
-`;
-
-// Add styles to the document
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
-}
 
 export default ProfilePage;
