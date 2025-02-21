@@ -47,6 +47,80 @@ const AudioPlayer = () => {
   );
 };
 
+// Komponen Chat Widget Baru
+const ChatWidget = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+
+  const handleSend = () => {
+    if (input.trim() === '') return;
+
+    // Tambahkan pesan pengguna
+    setMessages([...messages, { sender: 'user', text: input }]);
+
+    // Logika AI sederhana (tanpa API key)
+    let response = 'Maaf, saya hanya chat sederhana tanpa AI eksternal.';
+    if (input.toLowerCase().includes('halo')) {
+      response = 'Halo! Apa kabar?';
+    } else if (input.toLowerCase().includes('ridha')) {
+      response = 'Ridha adalah web developer dan digital creator yang keren!';
+    } else if (input.toLowerCase().includes('bantu')) {
+      response = 'Tentu, saya bisa membantu dengan pertanyaan sederhana!';
+    }
+
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { sender: 'bot', text: response }]);
+    }, 500);
+
+    setInput('');
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-20 right-4 bg-red-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-red-700 transition-all z-50"
+      >
+        {isOpen ? 'Tutup Chat' : 'Buka Chat'}
+      </button>
+      {isOpen && (
+        <div className="fixed bottom-20 right-4 w-80 h-96 bg-white rounded-lg shadow-xl flex flex-col z-50">
+          <div className="bg-red-600 text-white p-2 rounded-t-lg text-center">
+            Chat dengan Bot
+          </div>
+          <div className="flex-1 p-2 overflow-y-auto">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`mb-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}
+              >
+                <span
+                  className={`inline-block p-2 rounded-lg ${
+                    msg.sender === 'user' ? 'bg-red-200' : 'bg-gray-200'
+                  }`}
+                >
+                  {msg.text}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="p-2 border-t">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              className="w-full p-2 border rounded-lg outline-none"
+              placeholder="Ketik pesan..."
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
 
@@ -75,7 +149,7 @@ const ProfilePage = () => {
       {sparkles.map((sparkle) => (
         <Sparkle key={sparkle.id} style={sparkle.style} />
       ))}
-      
+
       <main className="max-w-3xl mx-auto px-4 py-16 relative z-10">
         {/* Profile Image with glow effect */}
         <div className="flex justify-center mb-8">
@@ -147,6 +221,9 @@ const ProfilePage = () => {
 
       {/* Audio Player */}
       <AudioPlayer />
+
+      {/* Chat Widget */}
+      <ChatWidget />
     </div>
   );
 };
