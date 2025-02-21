@@ -1,5 +1,6 @@
 import { Instagram, Youtube, Twitter, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Sparkle = ({ style }) => (
   <div 
@@ -47,33 +48,41 @@ const AudioPlayer = () => {
   );
 };
 
-// Komponen Chat Widget Baru
+// Komponen Chat Widget dengan Blackbox AI (tanpa API Key)
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim() === '') return;
 
-    // Tambahkan pesan pengguna
-    setMessages([...messages, { sender: 'user', text: input }]);
-
-    // Logika AI sederhana (tanpa API key)
-    let response = 'Maaf, saya hanya chat sederhana tanpa AI eksternal.';
-    if (input.toLowerCase().includes('halo')) {
-      response = 'Halo! Apa kabar?';
-    } else if (input.toLowerCase().includes('ridha')) {
-      response = 'Ridha adalah web developer dan digital creator yang keren!';
-    } else if (input.toLowerCase().includes('bantu')) {
-      response = 'Tentu, saya bisa membantu dengan pertanyaan sederhana!';
-    }
-
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: 'bot', text: response }]);
-    }, 500);
-
+    // Tambahkan pesan pengguna ke daftar
+    const userMessage = { sender: 'user', text: input };
+    setMessages([...messages, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    try {
+      // Panggil API Blackbox AI seperti fungsi deepseek
+      const { data } = await axios.post("https://api.blackbox.ai/api/chat", {
+        messages: [{ id: null, role: "user", content: input }],
+        userSelectedModel: "deepseek-v3"
+      });
+
+      // Ambil respons dari Blackbox AI
+      const botResponse = data || 'Saya tidak mengerti, coba lagi!';
+      setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
+    } catch (error) {
+      console.error('Error fetching Blackbox AI response:', error);
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: 'Terjadi kesalahan, coba lagi nanti.' }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -87,7 +96,7 @@ const ChatWidget = () => {
       {isOpen && (
         <div className="fixed bottom-20 right-4 w-80 h-96 bg-white rounded-lg shadow-xl flex flex-col z-50">
           <div className="bg-red-600 text-white p-2 rounded-t-lg text-center">
-            Chat dengan Bot
+            Chat dengan Deepseek AI
           </div>
           <div className="flex-1 p-2 overflow-y-auto">
             {messages.map((msg, index) => (
@@ -104,6 +113,9 @@ const ChatWidget = () => {
                 </span>
               </div>
             ))}
+            {isLoading && (
+              <div className="text-center text-gray-500">Memuat...</div>
+            )}
           </div>
           <div className="p-2 border-t">
             <input
@@ -113,6 +125,7 @@ const ChatWidget = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               className="w-full p-2 border rounded-lg outline-none"
               placeholder="Ketik pesan..."
+              disabled={isLoading}
             />
           </div>
         </div>
@@ -222,7 +235,7 @@ const ProfilePage = () => {
       {/* Audio Player */}
       <AudioPlayer />
 
-      {/* Chat Widget */}
+      {/* Chat Widget dengan Blackbox AI */}
       <ChatWidget />
     </div>
   );
