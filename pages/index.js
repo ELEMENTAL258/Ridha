@@ -1,7 +1,5 @@
 import { Instagram, Youtube, Twitter, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import './styles.css'; // Impor CSS terpisah
 
 const Sparkle = ({ style }) => (
   <div 
@@ -49,119 +47,37 @@ const AudioPlayer = () => {
   );
 };
 
-const ChatWidget = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSend = async () => {
-    if (input.trim() === '') return;
-
-    const userMessage = { sender: 'user', text: input };
-    setMessages([...messages, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const { data } = await axios.post("https://api.blackbox.ai/api/chat", {
-        messages: [{ id: null, role: "user", content: input }],
-        userSelectedModel: "deepseek-v3"
-      });
-
-      const botResponse = data || 'Saya tidak mengerti, coba lagi!';
-      setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
-    } catch (error) {
-      console.error('Error fetching Blackbox AI response:', error);
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'bot', text: 'Terjadi kesalahan, coba lagi nanti.' }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 right-4 bg-red-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-red-700 transition-all z-50"
-      >
-        {isOpen ? 'Tutup Chat' : 'Buka Chat'}
-      </button>
-      {isOpen && (
-        <div className="fixed bottom-20 right-4 w-80 h-96 bg-white rounded-lg shadow-xl flex flex-col z-50">
-          <div className="bg-red-600 text-white p-2 rounded-t-lg text-center">
-            Chat dengan Deepseek AI
-          </div>
-          <div className="flex-1 p-2 overflow-y-auto">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`mb-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}
-              >
-                <span
-                  className={`inline-block p-2 rounded-lg ${
-                    msg.sender === 'user' ? 'bg-red-200' : 'bg-gray-200'
-                  }`}
-                >
-                  {msg.text}
-                </span>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="text-center text-gray-500">Memuat...</div>
-            )}
-          </div>
-          <div className="p-2 border-t">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              className="w-full p-2 border rounded-lg outline-none"
-              placeholder="Ketik pesan..."
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') { // Pastikan hanya dijalankan di klien
-      const generateSparkles = () => {
-        const newSparkles = Array.from({ length: 20 }, (_, i) => ({
-          id: i,
-          style: {
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 2}s`,
-            opacity: Math.random(),
-          }
-        }));
-        setSparkles(newSparkles);
-      };
+    const generateSparkles = () => {
+      const newSparkles = Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        style: {
+          top: `${Math.random() * 100}%`,
+          left: `${Math.random() * 100}%`,
+          animationDelay: `${Math.random() * 2}s`,
+          opacity: Math.random(),
+        }
+      }));
+      setSparkles(newSparkles);
+    };
 
-      generateSparkles();
-      const interval = setInterval(generateSparkles, 3000);
-      return () => clearInterval(interval);
-    }
+    generateSparkles();
+    const interval = setInterval(generateSparkles, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
+      {/* Sparkles */}
       {sparkles.map((sparkle) => (
         <Sparkle key={sparkle.id} style={sparkle.style} />
       ))}
 
       <main className="max-w-3xl mx-auto px-4 py-16 relative z-10">
+        {/* Profile Image with glow effect */}
         <div className="flex justify-center mb-8">
           <div className="relative w-48 h-48">
             <div className="absolute inset-0 bg-red-300 rounded-full blur-md animate-pulse" />
@@ -173,6 +89,7 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        {/* Introduction with fade-in animation */}
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
           <p className="text-xl text-red-100 mb-6">
@@ -184,6 +101,7 @@ const ProfilePage = () => {
           </p>
         </div>
 
+        {/* Social Media Links with hover animation */}
         <div className="space-y-4 max-w-md mx-auto">
           <a
             href="https://instagram.com/fathy_847"
@@ -227,10 +145,38 @@ const ProfilePage = () => {
         </div>
       </main>
 
+      {/* Audio Player */}
       <AudioPlayer />
-      <ChatWidget />
     </div>
   );
 };
+
+// Add required keyframes
+const styles = `
+  @keyframes twinkle {
+    0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1) rotate(180deg); opacity: 1; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-twinkle {
+    animation: twinkle 3s infinite;
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 1s ease-out forwards;
+  }
+`;
+
+// Add styles to the document
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
 
 export default ProfilePage;
