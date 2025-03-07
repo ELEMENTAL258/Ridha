@@ -50,8 +50,8 @@ const AudioPlayer = () => {
 
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
-  const [showButtons, setShowButtons] = useState(false);
-  const buttonsRef = useRef(null);
+  const [visibleButtons, setVisibleButtons] = useState([]);
+  const buttonsRef = useRef([]);
 
   useEffect(() => {
     const generateSparkles = () => {
@@ -75,21 +75,25 @@ const ProfilePage = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setShowButtons(true);
-        }
+        entries.forEach((entry, index) => {
+          if (entry.isIntersecting) {
+            setTimeout(() => {
+              setVisibleButtons((prev) => [...prev, index]);
+            }, index * 300); // Menunda setiap tombol muncul 300ms satu per satu
+          }
+        });
       },
       { threshold: 0.3 }
     );
 
-    if (buttonsRef.current) {
-      observer.observe(buttonsRef.current);
-    }
+    buttonsRef.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
 
     return () => {
-      if (buttonsRef.current) {
-        observer.unobserve(buttonsRef.current);
-      }
+      buttonsRef.current.forEach((el) => {
+        if (el) observer.unobserve(el);
+      });
     };
   }, []);
 
@@ -123,8 +127,8 @@ const ProfilePage = () => {
           </p>
         </div>
 
-        {/* Social Media Links with Animation */}
-        <div ref={buttonsRef} className="space-y-4 max-w-md mx-auto">
+        {/* Social Media Links with Scroll Animation */}
+        <div className="space-y-4 max-w-md mx-auto">
           {[
             { href: "https://instagram.com/fathy_847", icon: Instagram, text: "Follow on Instagram" },
             { href: "https://youtube.com/@ELEMENTALGOO", icon: Youtube, text: "Subscribe on YouTube" },
@@ -135,10 +139,10 @@ const ProfilePage = () => {
             <a
               key={index}
               href={button.href}
+              ref={(el) => (buttonsRef.current[index] = el)}
               className={`flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md transition-all duration-500 ease-out ${
-                showButtons ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                visibleButtons.includes(index) ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
               }`}
-              style={{ transitionDelay: `${index * 200}ms` }}
             >
               <button.icon className="w-6 h-6 mr-3" />
               <span className="font-medium">{button.text}</span>
