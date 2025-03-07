@@ -136,9 +136,9 @@ const ProfilePage = () => {
               key={index}
               href={button.href}
               className={`flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md transition-all duration-500 ease-out ${
-                showButtons ? "translate-x-0 opacity-100" : "translate-x-20 opacity-0"
+                showButtons ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
               }`}
-              style={{ transitionDelay: `${index * 150}ms` }}
+              style={{ transitionDelay: `${index * 200}ms` }}
             >
               <button.icon className="w-6 h-6 mr-3" />
               <span className="font-medium">{button.text}</span>
