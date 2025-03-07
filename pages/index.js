@@ -66,7 +66,7 @@ const ProfilePage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-black pb-32">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
       <SpeedInsights />
 
       {/* Sparkle (Bintang Berkedip) */}
@@ -88,10 +88,10 @@ const ProfilePage = () => {
 
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
-          <p className="text-xl text-gray-300 mb-6">
+          <p className="text-xl text-red-100 mb-6">
             Web Developer & Digital Creator
           </p>
-          <p className="text-gray-400 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-red-100 leading-relaxed max-w-2xl mx-auto">
             Hai! Namaku Ridha, dan aku adalah seorang web developer dan pengembang bot WhatsApp pemula. Aku memiliki pengalaman dari teman-teman saya yang mengajarkan dan belajar otodidak. Karena rasa penasaran dan keinginan mempelajari hal baru, aku jadi semangat belajar hal baru.
           </p>
         </div>
