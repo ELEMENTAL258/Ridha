@@ -30,7 +30,7 @@ const AudioPlayer = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md p-4 z-50">
       <div className="max-w-3xl mx-auto">
-        <p className="text-white mb-2 text-center">Hu Tao BGM</p>
+        <p className="text-white mb-2 text-center">Blue - Yung kai</p>
         <audio
           className="w-full"
           controls
