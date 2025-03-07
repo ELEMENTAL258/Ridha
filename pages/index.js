@@ -1,11 +1,12 @@
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Instagram, Youtube, Twitter, Phone } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-const Sparkle = ({ style }) => (
-  <div 
-    className="absolute w-2 h-2 bg-white rounded-full animate-twinkle"
-    style={style}
+// Sparkle (Bintang Berkedip)
+const Sparkle = ({ style, color }) => (
+  <div
+    className="absolute w-2 h-2 rounded-full animate-twinkle"
+    style={{ ...style, backgroundColor: color }}
   />
 );
 
@@ -16,26 +17,18 @@ const AudioPlayer = () => {
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-  };
-
-  const handleTimeUpdate = (e) => {
-    setCurrentTime(e.target.currentTime);
-  };
-
-  const handleLoadedMetadata = (e) => {
-    setDuration(e.target.duration);
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-md p-4 z-50">
       <div className="max-w-3xl mx-auto">
-        <p className="text-white mb-2 text-center">Blue - Yung kai</p>
+        <p className="text-white mb-2 text-center">Blue - Yung Kai</p>
         <audio
           className="w-full"
           controls
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.target.duration)}
         >
           <source src="/bgm.mp3" type="audio/mp3" />
           Your browser does not support the audio element.
@@ -50,59 +43,35 @@ const AudioPlayer = () => {
 
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
-  const [visibleButtons, setVisibleButtons] = useState([]);
-  const buttonsRef = useRef([]);
 
   useEffect(() => {
+    const colors = ["white", "lightblue", "yellow"];
     const generateSparkles = () => {
-      const newSparkles = Array.from({ length: 20 }, (_, i) => ({
+      const newSparkles = Array.from({ length: 50 }, (_, i) => ({
         id: i,
         style: {
-          top: `${Math.random() * 100}%`,
-          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}vh`,
+          left: `${Math.random() * 100}vw`,
           animationDelay: `${Math.random() * 2}s`,
           opacity: Math.random(),
-        }
+        },
+        color: colors[Math.floor(Math.random() * colors.length)], // Warna acak
       }));
       setSparkles(newSparkles);
     };
 
     generateSparkles();
-    const interval = setInterval(generateSparkles, 3000);
+    const interval = setInterval(generateSparkles, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry, index) => {
-          if (entry.isIntersecting) {
-            setTimeout(() => {
-              setVisibleButtons((prev) => [...prev, index]);
-            }, index * 300); // Menunda setiap tombol muncul 300ms satu per satu
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    buttonsRef.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
-    return () => {
-      buttonsRef.current.forEach((el) => {
-        if (el) observer.unobserve(el);
-      });
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
-      <SpeedInsights /> 
+    <div className="min-h-screen relative overflow-hidden bg-black pb-32">
+      <SpeedInsights />
 
+      {/* Sparkle (Bintang Berkedip) */}
       {sparkles.map((sparkle) => (
-        <Sparkle key={sparkle.id} style={sparkle.style} />
+        <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
       ))}
 
       <main className="max-w-3xl mx-auto px-4 py-16 relative z-10">
@@ -119,15 +88,14 @@ const ProfilePage = () => {
 
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
-          <p className="text-xl text-red-100 mb-6">
+          <p className="text-xl text-gray-300 mb-6">
             Web Developer & Digital Creator
           </p>
-          <p className="text-red-100 leading-relaxed max-w-2xl mx-auto">
-            Hai! Namaku Ridha, dan aku adalah seorang web developer dan pengembang bot whatsapp pemula.
+          <p className="text-gray-400 leading-relaxed max-w-2xl mx-auto">
+            Hai! Namaku Ridha, dan aku adalah seorang web developer dan pengembang bot WhatsApp pemula. Aku memiliki pengalaman dari teman-teman saya yang mengajarkan dan belajar otodidak. Karena rasa penasaran dan keinginan mempelajari hal baru, aku jadi semangat belajar hal baru.
           </p>
         </div>
 
-        {/* Social Media Links with Scroll Animation */}
         <div className="space-y-4 max-w-md mx-auto">
           {[
             { href: "https://instagram.com/fathy_847", icon: Instagram, text: "Follow on Instagram" },
@@ -139,10 +107,7 @@ const ProfilePage = () => {
             <a
               key={index}
               href={button.href}
-              ref={(el) => (buttonsRef.current[index] = el)}
-              className={`flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md transition-all duration-500 ease-out ${
-                visibleButtons.includes(index) ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-              }`}
+              className="flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md hover:scale-105 hover:bg-white/20 transition-all duration-300"
             >
               <button.icon className="w-6 h-6 mr-3" />
               <span className="font-medium">{button.text}</span>
