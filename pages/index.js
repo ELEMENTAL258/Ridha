@@ -79,7 +79,7 @@ const ProfilePage = () => {
           <div className="relative w-48 h-48">
             <div className="absolute inset-0 bg-red-300 rounded-full blur-md animate-pulse" />
             <img
-              src="https://qu.ax/bQEdt.jpg"
+              src="https://files.catbox.moe/ul5kgd.jpg"
               alt="Profile Picture"
               className="relative rounded-full shadow-lg border-4 border-white w-48 h-48 object-cover"
             />
