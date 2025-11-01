@@ -148,41 +148,13 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
   );
 };
 
-// Simple playlist dengan 3 lagu favorite
-const playlist = [
-  {
-    id: 1,
-    title: "Mind Games",
-    artist: "Sicksick", 
-    src: "/music/mind-games.mp3",
-    cover: "/album-cover.jpg"
-  },
-  {
-    id: 2,
-    title: "Blue",
-    artist: "Yung Kai",
-    src: "/music/blue.mp3", 
-    cover: "/album-cover.jpg"
-  },
-  {
-    id: 3,
-    title: "Sunset Dreams",
-    artist: "Lofi Girl",
-    src: "/music/sunset-dreams.mp3",
-    cover: "/album-cover.jpg"
-  }
-];
-
-// Audio Player Component (Tetap aesthetic seperti semula)
+// Audio Player Component (Spotify-like)
 const AudioPlayer = ({ isMusicPage = false }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const audioRef = useRef(null);
-
-  const currentTrack = playlist[currentTrackIndex];
 
   const formatTime = (time) => {
     if (isNaN(time)) return "0:00";
@@ -203,6 +175,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       }
       setIsPlaying(!isPlaying);
     } catch (error) {
+      console.log('Play/pause error:', error);
       if (isPlaying) {
         audio.pause();
       } else {
@@ -230,70 +203,38 @@ const AudioPlayer = ({ isMusicPage = false }) => {
     }
   };
 
-  const nextTrack = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % playlist.length);
-    setIsPlaying(true);
-  };
-
-  const prevTrack = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
-    setIsPlaying(true);
-  };
-
-  // Auto play next track
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleEnded = () => {
-      nextTrack();
-    };
-
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
-  }, []);
-
-  // Reset audio when track changes
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
-      audio.currentTime = 0;
-      setCurrentTime(0);
-      if (isPlaying) {
-        audio.play().catch(e => console.log('Auto-play failed:', e));
-      }
+      audio.volume = volume;
+      audio.currentTime = currentTime;
     }
-  }, [currentTrackIndex]);
+  }, []);
 
-  // Versi Mini Player (untuk beranda) - TETAP SIMPLE
+  // Versi Mini Player (untuk beranda)
   if (!isMusicPage) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Song Info */}
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <img
-              src={currentTrack.cover}
+              src="/album-cover.jpg"
               alt="Album Cover"
               className="w-12 h-12 rounded-md object-cover bg-gray-700"
+              onError={(e) => {
+                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
+              }}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-white font-medium text-sm truncate">{currentTrack.title}</p>
-              <p className="text-gray-400 text-xs truncate">{currentTrack.artist}</p>
+              <p className="text-white font-medium text-sm truncate">Mind Games</p>
+              <p className="text-gray-400 text-xs truncate">Sicksick</p>
             </div>
           </div>
 
-          {/* Simple Controls */}
           <div className="flex items-center space-x-4 flex-1 justify-center">
             <button
-              onClick={prevTrack}
-              className="text-gray-400 hover:text-white transition-colors text-sm"
-            >
-              ←
-            </button>
-            <button
               onClick={handlePlayPause}
-              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
             >
               {isPlaying ? (
                 <div className="w-3 h-3 bg-black"></div>
@@ -301,18 +242,11 @@ const AudioPlayer = ({ isMusicPage = false }) => {
                 <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div>
               )}
             </button>
-            <button
-              onClick={nextTrack}
-              className="text-gray-400 hover:text-white transition-colors text-sm"
-            >
-              →
-            </button>
           </div>
 
-          {/* Time & Volume */}
           <div className="flex items-center space-x-3 flex-1 justify-end">
             <div className="text-white text-xs hidden sm:block">
-              {formatTime(currentTime)}
+              {formatTime(currentTime)} / {formatTime(duration)}
             </div>
             <input
               type="range"
@@ -328,7 +262,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
 
         <audio
           ref={audioRef}
-          src={currentTrack.src}
+          id="main-audio"
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
           onLoadedMetadata={(e) => {
             setDuration(e.target.duration);
@@ -336,41 +270,52 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           }}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
           preload="metadata"
-        />
+        >
+          <source src="/bgm.mp3" type="audio/mp3" />
+          <source src="/bgm.ogg" type="audio/ogg" />
+          Your browser does not support the audio element.
+        </audio>
       </div>
     );
   }
 
-  // Versi Full Music Page - TETAP CLEAN & AESTHETIC
+  // Versi Full Music Page (Spotify-like dengan Visualizer)
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pb-32">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Music Visualizer */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
           <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
         </div>
 
-        {/* Album Art & Info - SIMPLE */}
         <div className="flex flex-col md:flex-row items-center md:items-end space-y-6 md:space-y-0 md:space-x-8 mb-8">
           <img
-            src={currentTrack.cover}
+            src="/album-cover.jpg"
             alt="Album Cover"
-            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30"
+            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30 bg-gray-800"
+            onError={(e) => {
+              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
+            }}
           />
           <div className="text-center md:text-left">
             <p className="text-green-500 font-semibold mb-2">SEDANG DIPUTAR</p>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{currentTrack.title}</h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-6">{currentTrack.artist}</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mind Games</h1>
+            <p className="text-xl md:text-2xl text-gray-300 mb-6">Sicksick</p>
             <div className="flex items-center space-x-4 text-sm text-gray-400 justify-center md:justify-start">
-              <span>Track {currentTrackIndex + 1} of {playlist.length}</span>
+              <span>2025</span>
+              <span>•</span>
+              <span>1 lagu</span>
+              <span>•</span>
+              <span>4:01</span>
             </div>
           </div>
         </div>
 
-        {/* Player Controls - CLEAN */}
         <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
-          {/* Progress Bar */}
           <div className="mb-6">
             <input
               type="range"
@@ -378,7 +323,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
               max={duration || 100}
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
             />
             <div className="flex justify-between text-sm text-gray-400 mt-2">
               <span>{formatTime(currentTime)}</span>
@@ -386,35 +331,46 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             </div>
           </div>
 
-          {/* Control Buttons */}
           <div className="flex items-center justify-center space-x-8">
             <button 
-              onClick={prevTrack}
-              className="text-gray-400 hover:text-white transition-colors p-3 rounded-full hover:bg-white/10"
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.currentTime = Math.max(0, currentTime - 10);
+                }
+              }}
             >
-              ←
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+              </svg>
             </button>
             
             <button
               onClick={handlePlayPause}
-              className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform hover:bg-green-400 shadow-lg"
+              className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 hover:bg-green-400 shadow-lg"
             >
               {isPlaying ? (
-                <div className="w-5 h-5 bg-black"></div>
+                <div className="w-6 h-6 bg-black rounded-sm"></div>
               ) : (
-                <div className="w-0 h-0 border-l-[10px] border-l-black border-y-[6px] border-y-transparent ml-1"></div>
+                <div className="w-0 h-0 border-l-[12px] border-l-black border-y-[8px] border-y-transparent ml-1"></div>
               )}
             </button>
 
             <button 
-              onClick={nextTrack}
-              className="text-gray-400 hover:text-white transition-colors p-3 rounded-full hover:bg-white/10"
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.currentTime = 0;
+                  setIsPlaying(false);
+                }
+              }}
             >
-              →
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+              </svg>
             </button>
           </div>
 
-          {/* Volume Control */}
           <div className="flex items-center justify-center space-x-4 mt-6">
             <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -431,17 +387,16 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           </div>
         </div>
 
-        {/* Simple Track Info */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-400">
-            Now playing: <span className="text-green-400">{currentTrack.title}</span> by <span className="text-green-400">{currentTrack.artist}</span>
-          </p>
+        <div className="mt-8 text-center bg-black/30 rounded-xl p-4 backdrop-blur-sm">
+          <p className="text-green-400 font-semibold mb-2">NOW PLAYING</p>
+          <p className="text-2xl font-bold">Mind Games - Sicksick</p>
+          <p className="text-gray-400 mt-2">Music Visualizer Active</p>
         </div>
       </div>
 
       <audio
         ref={audioRef}
-        src={currentTrack.src}
+        id="main-audio"
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
         onLoadedMetadata={(e) => {
           setDuration(e.target.duration);
@@ -449,13 +404,20 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }}
         preload="metadata"
-      />
+      >
+        <source src="/bgm.mp3" type="audio/mp3" />
+        <source src="/bgm.ogg" type="audio/ogg" />
+        Your browser does not support the audio element.
+      </audio>
     </div>
   );
 };
 
-// Profile Page Component - TETAP SAMA
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
   const [currentPage, setCurrentPage] = useState("beranda");
@@ -466,22 +428,28 @@ const ProfilePage = () => {
 
   // PWA Installation Logic
   useEffect(() => {
+    // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsStandalone(true);
     }
 
+    // Check if iOS (different install method)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(isIOS);
 
+    // Handle before install prompt
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Show prompt after 3 seconds
       setTimeout(() => {
         setShowInstallPrompt(true);
       }, 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
+
+    // Check if already installed
     window.addEventListener('appinstalled', () => {
       setShowInstallPrompt(false);
       setIsStandalone(true);
@@ -506,6 +474,7 @@ const ProfilePage = () => {
 
   const handleIOSInstall = () => {
     setShowInstallPrompt(false);
+    // For iOS, we show instructions
     alert('Untuk install app di iOS:\n1. Tap share button (kotak dengan panah)\n2. Pilih "Add to Home Screen"');
   };
 
@@ -562,7 +531,7 @@ const ProfilePage = () => {
     </nav>
   );
 
-  // Beranda Page - TETAP SAMA
+  // Beranda Page
   if (currentPage === "beranda") {
     return (
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
@@ -635,7 +604,7 @@ const ProfilePage = () => {
               <div className="flex-1">
                 <p className="font-bold text-lg">Install App</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Install aplikasi untuk experience yang lebih baik!
+                  Install aplikasi untuk experience yang lebih baik! Buka offline dan load lebih cepat.
                 </p>
                 <div className="flex space-x-2 mt-3">
                   <button
@@ -646,11 +615,17 @@ const ProfilePage = () => {
                   </button>
                   <button
                     onClick={isIOS ? handleIOSInstall : handleInstallClick}
-                    className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 font-medium"
+                    className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 font-medium flex items-center space-x-1"
                   >
-                    Install
+                    <Download className="w-4 h-4" />
+                    <span>Install</span>
                   </button>
                 </div>
+                {isIOS && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    *Untuk iOS: Tap share → "Add to Home Screen"
+                  </p>
+                )}
               </div>
             </div>
           </div>
