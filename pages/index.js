@@ -1,6 +1,6 @@
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Instagram, Youtube, Twitter, Phone, Home, Music } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Sparkle Component
 const Sparkle = ({ style, color }) => (
@@ -10,12 +10,217 @@ const Sparkle = ({ style, color }) => (
   />
 );
 
+// Music Visualizer Component
+const MusicVisualizer = ({ isPlaying, audioRef }) => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const dataArrayRef = useRef(null);
+  const bufferLengthRef = useRef(null);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    // Setup Audio Context dan Analyser
+    const setupAudioContext = async () => {
+      try {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        
+        source.connect(analyserRef.current);
+        analyserRef.current.connect(audioContextRef.current.destination);
+        
+        analyserRef.current.fftSize = 256;
+        bufferLengthRef.current = analyserRef.current.frequencyBinCount;
+        dataArrayRef.current = new Uint8Array(bufferLengthRef.current);
+        
+        // Resume context jika suspended
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+      } catch (error) {
+        console.log('Audio context error:', error);
+      }
+    };
+
+    setupAudioContext();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [audioRef]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !analyserRef.current) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const draw = () => {
+      if (!analyserRef.current || !dataArrayRef.current) return;
+
+      animationRef.current = requestAnimationFrame(draw);
+      
+      analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, width, height);
+
+      const barWidth = (width / bufferLengthRef.current) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLengthRef.current; i++) {
+        const barHeight = (dataArrayRef.current[i] / 255) * height;
+        
+        // Gradient warna berdasarkan tinggi bar
+        const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
+        gradient.addColorStop(0, '#10b981'); // green-500
+        gradient.addColorStop(0.5, '#3b82f6'); // blue-500
+        gradient.addColorStop(1, '#8b5cf6'); // purple-500
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+
+        // Efek glow
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+        ctx.shadowBlur = 0;
+
+        x += barWidth + 1;
+      }
+    };
+
+    if (isPlaying) {
+      draw();
+    } else {
+      // Tampilan idle ketika tidak diputar
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Bars kecil untuk efek standby
+      const barWidth = 4;
+      const gap = 2;
+      let x = 0;
+      
+      while (x < width) {
+        const randomHeight = Math.random() * 20 + 5;
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+        ctx.fillRect(x, height - randomHeight, barWidth, randomHeight);
+        x += barWidth + gap;
+      }
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying]);
+
+  return (
+    <div className="w-full h-32 bg-black/30 rounded-lg overflow-hidden backdrop-blur-sm">
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={128}
+        className="w-full h-full"
+      />
+    </div>
+  );
+};
+
+// Circle Visualizer (Alternative)
+const CircleVisualizer = ({ isPlaying, audioRef }) => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    const draw = () => {
+      animationRef.current = requestAnimationFrame(draw);
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, width, height);
+
+      const baseRadius = 50;
+      const time = Date.now() * 0.002;
+
+      // Draw multiple circles dengan efek wave
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const wave = Math.sin(time + i) * 20;
+        const radius = baseRadius + wave + (isPlaying ? Math.random() * 15 : 0);
+        
+        const x = centerX + Math.cos(angle) * 60;
+        const y = centerY + Math.sin(angle) * 60;
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        
+        // Gradient warna
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#10b981');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Border glow
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    };
+
+    if (isPlaying) {
+      draw();
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying]);
+
+  return (
+    <div className="w-64 h-64 mx-auto">
+      <canvas
+        ref={canvasRef}
+        width={256}
+        height={256}
+        className="w-full h-full"
+      />
+    </div>
+  );
+};
+
 // Audio Player Component (Spotify-like)
 const AudioPlayer = ({ isMusicPage = false }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [visualizerType, setVisualizerType] = useState('bars'); // 'bars' or 'circle'
+  const audioRef = useRef(null);
 
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
@@ -24,19 +229,21 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   };
 
   const handlePlayPause = () => {
-    const audio = document.getElementById("main-audio");
+    const audio = audioRef.current;
     if (audio) {
       if (isPlaying) {
         audio.pause();
       } else {
-        audio.play();
+        audio.play().catch(error => {
+          console.log('Play error:', error);
+        });
       }
       setIsPlaying(!isPlaying);
     }
   };
 
   const handleSeek = (e) => {
-    const audio = document.getElementById("main-audio");
+    const audio = audioRef.current;
     if (audio) {
       audio.currentTime = e.target.value;
       setCurrentTime(e.target.value);
@@ -44,7 +251,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   };
 
   const handleVolumeChange = (e) => {
-    const audio = document.getElementById("main-audio");
+    const audio = audioRef.current;
     if (audio) {
       audio.volume = e.target.value;
       setVolume(e.target.value);
@@ -59,7 +266,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           {/* Song Info */}
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <img
-              src="/album-cover.jpg" // Ganti dengan path cover album Anda
+              src="/album-cover.jpg"
               alt="Album Cover"
               className="w-12 h-12 rounded-md object-cover"
             />
@@ -76,9 +283,9 @@ const AudioPlayer = ({ isMusicPage = false }) => {
               className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
             >
               {isPlaying ? (
-                <div className="w-3 h-3 bg-black"></div> // Pause icon sederhana
+                <div className="w-3 h-3 bg-black"></div>
               ) : (
-                <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div> // Play icon
+                <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div>
               )}
             </button>
           </div>
@@ -101,6 +308,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         </div>
 
         <audio
+          ref={audioRef}
           id="main-audio"
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.target.duration)}
@@ -114,22 +322,53 @@ const AudioPlayer = ({ isMusicPage = false }) => {
     );
   }
 
-  // Versi Full Music Page (Spotify-like)
+  // Versi Full Music Page (Spotify-like dengan Visualizer)
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pb-32">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Visualizer Toggle */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-gray-800/50 rounded-full p-1 backdrop-blur-sm">
+            <button
+              onClick={() => setVisualizerType('bars')}
+              className={`px-4 py-2 rounded-full transition-all ${
+                visualizerType === 'bars' ? 'bg-green-500 text-white' : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              Bars
+            </button>
+            <button
+              onClick={() => setVisualizerType('circle')}
+              className={`px-4 py-2 rounded-full transition-all ${
+                visualizerType === 'circle' ? 'bg-green-500 text-white' : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              Circle
+            </button>
+          </div>
+        </div>
+
+        {/* Music Visualizer */}
+        <div className="mb-8">
+          {visualizerType === 'bars' ? (
+            <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
+          ) : (
+            <CircleVisualizer isPlaying={isPlaying} audioRef={audioRef} />
+          )}
+        </div>
+
         {/* Album Art & Info */}
         <div className="flex flex-col md:flex-row items-center md:items-end space-y-6 md:space-y-0 md:space-x-8 mb-8">
           <img
-            src="/album-cover.jpg" // Ganti dengan path cover album Anda
+            src="/album-cover.jpg"
             alt="Album Cover"
-            className="w-64 h-64 rounded-2xl shadow-2xl object-cover"
+            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30"
           />
           <div className="text-center md:text-left">
             <p className="text-green-500 font-semibold mb-2">SEDANG DIPUTAR</p>
-            <h1 className="text-5xl font-bold mb-4">Mind Games</h1>
-            <p className="text-2xl text-gray-300 mb-6">Sicksick</p>
-            <div className="flex items-center space-x-4 text-sm text-gray-400">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mind Games</h1>
+            <p className="text-xl md:text-2xl text-gray-300 mb-6">Sicksick</p>
+            <div className="flex items-center space-x-4 text-sm text-gray-400 justify-center md:justify-start">
               <span>2025</span>
               <span>•</span>
               <span>1 lagu</span>
@@ -170,9 +409,9 @@ const AudioPlayer = ({ isMusicPage = false }) => {
               className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform hover:bg-green-400"
             >
               {isPlaying ? (
-                <div className="w-5 h-5 bg-black"></div> // Pause icon
+                <div className="w-5 h-5 bg-black"></div>
               ) : (
-                <div className="w-0 h-0 border-l-[10px] border-l-black border-y-[6px] border-y-transparent ml-1"></div> // Play icon
+                <div className="w-0 h-0 border-l-[10px] border-l-black border-y-[6px] border-y-transparent ml-1"></div>
               )}
             </button>
 
@@ -200,15 +439,16 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           </div>
         </div>
 
-        {/* Song Lyrics atau Description */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 italic">
-            "Nikmati momen dengan musik terbaik"
-          </p>
+        {/* Now Playing Info */}
+        <div className="mt-8 text-center bg-black/30 rounded-xl p-4 backdrop-blur-sm">
+          <p className="text-green-400 font-semibold mb-2">NOW PLAYING</p>
+          <p className="text-2xl font-bold">Mind Games - Sicksick</p>
+          <p className="text-gray-400 mt-2">Visualizer: {visualizerType === 'bars' ? 'Bars Spectrum' : 'Circle Waves'}</p>
         </div>
       </div>
 
       <audio
+        ref={audioRef}
         id="main-audio"
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
         onLoadedMetadata={(e) => setDuration(e.target.duration)}
@@ -224,7 +464,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
 
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
-  const [currentPage, setCurrentPage] = useState("beranda"); // "beranda" atau "musik"
+  const [currentPage, setCurrentPage] = useState("beranda");
 
   useEffect(() => {
     const colors = ["white", "lightblue", "yellow"];
