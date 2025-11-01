@@ -1,5 +1,5 @@
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Instagram, Youtube, Twitter, Phone, Home, Music } from "lucide-react";
+import { Instagram, Youtube, Twitter, Phone, Home, Music, Download } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 // Sparkle Component
@@ -24,7 +24,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
 
     const setupAudioContext = async () => {
       try {
-        // Cek jika audio context sudah ada
         if (audioContextRef.current) {
           return;
         }
@@ -40,7 +39,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
         bufferLengthRef.current = analyserRef.current.frequencyBinCount;
         dataArrayRef.current = new Uint8Array(bufferLengthRef.current);
         
-        // Resume context jika suspended
         if (audioContextRef.current.state === 'suspended') {
           await audioContextRef.current.resume();
         }
@@ -70,7 +68,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
 
     const draw = () => {
       if (!analyserRef.current || !dataArrayRef.current) {
-        // Jika analyser belum siap, coba lagi
         animationRef.current = requestAnimationFrame(draw);
         return;
       }
@@ -79,7 +76,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
       
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-      // Clear canvas dengan efek fade
       ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       ctx.fillRect(0, 0, width, height);
 
@@ -89,19 +85,16 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
       for (let i = 0; i < bufferLengthRef.current; i++) {
         const barHeight = (dataArrayRef.current[i] / 255) * height;
         
-        // Gradient warna berdasarkan tinggi bar
         const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
-        gradient.addColorStop(0, '#10b981'); // green-500
-        gradient.addColorStop(0.6, '#3b82f6'); // blue-500
-        gradient.addColorStop(1, '#8b5cf6'); // purple-500
+        gradient.addColorStop(0, '#10b981');
+        gradient.addColorStop(0.6, '#3b82f6');
+        gradient.addColorStop(1, '#8b5cf6');
 
         ctx.fillStyle = gradient;
         
-        // Draw bar dengan rounded corners
-        const roundedBarHeight = Math.max(barHeight, 2); // Minimum height
+        const roundedBarHeight = Math.max(barHeight, 2);
         ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
 
-        // Efek glow subtle
         ctx.shadowColor = '#10b981';
         ctx.shadowBlur = 5;
         ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
@@ -115,7 +108,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, width, height);
       
-      // Bars kecil untuk efek standby yang lebih smooth
       const barWidth = 3;
       const gap = 1;
       let x = 0;
@@ -134,7 +126,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
       draw();
     } else {
       drawIdle();
-      // Tetap request frame untuk idle animation
       animationRef.current = requestAnimationFrame(drawIdle);
     }
 
@@ -185,7 +176,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       setIsPlaying(!isPlaying);
     } catch (error) {
       console.log('Play/pause error:', error);
-      // Fallback: langsung set state tanpa await
       if (isPlaying) {
         audio.pause();
       } else {
@@ -213,7 +203,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
     }
   };
 
-  // Reset audio when component mounts
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -225,9 +214,8 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   // Versi Mini Player (untuk beranda)
   if (!isMusicPage) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Song Info */}
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <img
               src="/album-cover.jpg"
@@ -243,7 +231,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="flex items-center space-x-4 flex-1 justify-center">
             <button
               onClick={handlePlayPause}
@@ -257,7 +244,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             </button>
           </div>
 
-          {/* Volume & Time */}
           <div className="flex items-center space-x-3 flex-1 justify-end">
             <div className="text-white text-xs hidden sm:block">
               {formatTime(currentTime)} / {formatTime(duration)}
@@ -302,12 +288,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pb-32">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Music Visualizer */}
         <div className="mb-8">
           <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
         </div>
 
-        {/* Album Art & Info */}
         <div className="flex flex-col md:flex-row items-center md:items-end space-y-6 md:space-y-0 md:space-x-8 mb-8">
           <img
             src="/album-cover.jpg"
@@ -331,9 +315,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           </div>
         </div>
 
-        {/* Player Controls */}
         <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
-          {/* Progress Bar */}
           <div className="mb-6">
             <input
               type="range"
@@ -349,7 +331,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             </div>
           </div>
 
-          {/* Control Buttons */}
           <div className="flex items-center justify-center space-x-8">
             <button 
               className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
@@ -390,7 +371,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             </button>
           </div>
 
-          {/* Volume Control */}
           <div className="flex items-center justify-center space-x-4 mt-6">
             <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -407,7 +387,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           </div>
         </div>
 
-        {/* Now Playing Info */}
         <div className="mt-8 text-center bg-black/30 rounded-xl p-4 backdrop-blur-sm">
           <p className="text-green-400 font-semibold mb-2">NOW PLAYING</p>
           <p className="text-2xl font-bold">Mind Games - Sicksick</p>
@@ -442,6 +421,62 @@ const AudioPlayer = ({ isMusicPage = false }) => {
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
   const [currentPage, setCurrentPage] = useState("beranda");
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  // PWA Installation Logic
+  useEffect(() => {
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsStandalone(true);
+    }
+
+    // Check if iOS (different install method)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    setIsIOS(isIOS);
+
+    // Handle before install prompt
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Show prompt after 3 seconds
+      setTimeout(() => {
+        setShowInstallPrompt(true);
+      }, 3000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // Check if already installed
+    window.addEventListener('appinstalled', () => {
+      setShowInstallPrompt(false);
+      setIsStandalone(true);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallPrompt(false);
+        setIsStandalone(true);
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleIOSInstall = () => {
+    setShowInstallPrompt(false);
+    // For iOS, we show instructions
+    alert('Untuk install app di iOS:\n1. Tap share button (kotak dengan panah)\n2. Pilih "Add to Home Screen"');
+  };
 
   useEffect(() => {
     const colors = ["white", "lightblue", "yellow"];
@@ -509,6 +544,13 @@ const ProfilePage = () => {
         ))}
 
         <main className="max-w-3xl mx-auto px-4 py-20 relative z-10">
+          {/* PWA Badge */}
+          {isStandalone && (
+            <div className="fixed top-16 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium z-30">
+              📱 App
+            </div>
+          )}
+
           <div className="flex justify-center mb-8">
             <div className="relative w-48 h-48">
               <div className="absolute inset-0 bg-red-300 rounded-full blur-md animate-pulse" />
@@ -541,6 +583,8 @@ const ProfilePage = () => {
               <a
                 key={index}
                 href={button.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md hover:scale-105 hover:bg-white/20 transition-all duration-300"
               >
                 <button.icon className="w-6 h-6 mr-3" />
@@ -549,6 +593,43 @@ const ProfilePage = () => {
             ))}
           </div>
         </main>
+
+        {/* Install PWA Prompt */}
+        {showInstallPrompt && !isStandalone && (
+          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 p-4 rounded-lg shadow-2xl z-50 max-w-sm mx-4 border-2 border-green-500">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Download className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-lg">Install App</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Install aplikasi untuk experience yang lebih baik! Buka offline dan load lebih cepat.
+                </p>
+                <div className="flex space-x-2 mt-3">
+                  <button
+                    onClick={() => setShowInstallPrompt(false)}
+                    className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    Nanti
+                  </button>
+                  <button
+                    onClick={isIOS ? handleIOSInstall : handleInstallClick}
+                    className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 font-medium flex items-center space-x-1"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Install</span>
+                  </button>
+                </div>
+                {isIOS && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    *Untuk iOS: Tap share → "Add to Home Screen"
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <AudioPlayer isMusicPage={false} />
       </div>
