@@ -10,7 +10,7 @@ const Sparkle = ({ style, color }) => (
   />
 );
 
-// Music Visualizer Component
+// Music Visualizer Component (Bars only)
 const MusicVisualizer = ({ isPlaying, audioRef }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -22,9 +22,13 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
   useEffect(() => {
     if (!audioRef.current) return;
 
-    // Setup Audio Context dan Analyser
     const setupAudioContext = async () => {
       try {
+        // Cek jika audio context sudah ada
+        if (audioContextRef.current) {
+          return;
+        }
+
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContextRef.current.createMediaElementSource(audioRef.current);
         analyserRef.current = audioContextRef.current.createAnalyser();
@@ -41,38 +45,42 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
           await audioContextRef.current.resume();
         }
       } catch (error) {
-        console.log('Audio context error:', error);
+        console.log('Audio context setup error:', error);
       }
     };
 
-    setupAudioContext();
+    if (isPlaying) {
+      setupAudioContext();
+    }
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
     };
-  }, [audioRef]);
+  }, [isPlaying, audioRef]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !analyserRef.current) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
 
     const draw = () => {
-      if (!analyserRef.current || !dataArrayRef.current) return;
+      if (!analyserRef.current || !dataArrayRef.current) {
+        // Jika analyser belum siap, coba lagi
+        animationRef.current = requestAnimationFrame(draw);
+        return;
+      }
 
       animationRef.current = requestAnimationFrame(draw);
       
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      // Clear canvas dengan efek fade
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       ctx.fillRect(0, 0, width, height);
 
       const barWidth = (width / bufferLengthRef.current) * 2.5;
@@ -84,40 +92,50 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
         // Gradient warna berdasarkan tinggi bar
         const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
         gradient.addColorStop(0, '#10b981'); // green-500
-        gradient.addColorStop(0.5, '#3b82f6'); // blue-500
+        gradient.addColorStop(0.6, '#3b82f6'); // blue-500
         gradient.addColorStop(1, '#8b5cf6'); // purple-500
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+        
+        // Draw bar dengan rounded corners
+        const roundedBarHeight = Math.max(barHeight, 2); // Minimum height
+        ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
 
-        // Efek glow
+        // Efek glow subtle
         ctx.shadowColor = '#10b981';
-        ctx.shadowBlur = 10;
-        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+        ctx.shadowBlur = 5;
+        ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
         ctx.shadowBlur = 0;
 
         x += barWidth + 1;
       }
     };
 
-    if (isPlaying) {
-      draw();
-    } else {
-      // Tampilan idle ketika tidak diputar
+    const drawIdle = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, width, height);
       
-      // Bars kecil untuk efek standby
-      const barWidth = 4;
-      const gap = 2;
+      // Bars kecil untuk efek standby yang lebih smooth
+      const barWidth = 3;
+      const gap = 1;
       let x = 0;
+      const time = Date.now() * 0.002;
       
       while (x < width) {
-        const randomHeight = Math.random() * 20 + 5;
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+        const wave = Math.sin(time + x * 0.1) * 0.5 + 0.5;
+        const randomHeight = wave * 15 + 8;
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.4)';
         ctx.fillRect(x, height - randomHeight, barWidth, randomHeight);
         x += barWidth + gap;
       }
+    };
+
+    if (isPlaying && analyserRef.current) {
+      draw();
+    } else {
+      drawIdle();
+      // Tetap request frame untuk idle animation
+      animationRef.current = requestAnimationFrame(drawIdle);
     }
 
     return () => {
@@ -128,85 +146,11 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
   }, [isPlaying]);
 
   return (
-    <div className="w-full h-32 bg-black/30 rounded-lg overflow-hidden backdrop-blur-sm">
+    <div className="w-full h-32 bg-black/20 rounded-lg overflow-hidden backdrop-blur-sm border border-gray-700/30">
       <canvas
         ref={canvasRef}
         width={800}
         height={128}
-        className="w-full h-full"
-      />
-    </div>
-  );
-};
-
-// Circle Visualizer (Alternative)
-const CircleVisualizer = ({ isPlaying, audioRef }) => {
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    const draw = () => {
-      animationRef.current = requestAnimationFrame(draw);
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, width, height);
-
-      const baseRadius = 50;
-      const time = Date.now() * 0.002;
-
-      // Draw multiple circles dengan efek wave
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const wave = Math.sin(time + i) * 20;
-        const radius = baseRadius + wave + (isPlaying ? Math.random() * 15 : 0);
-        
-        const x = centerX + Math.cos(angle) * 60;
-        const y = centerY + Math.sin(angle) * 60;
-
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        
-        // Gradient warna
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        gradient.addColorStop(0, '#10b981');
-        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
-        
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        // Border glow
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    };
-
-    if (isPlaying) {
-      draw();
-    }
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying]);
-
-  return (
-    <div className="w-64 h-64 mx-auto">
-      <canvas
-        ref={canvasRef}
-        width={256}
-        height={256}
         className="w-full h-full"
       />
     </div>
@@ -219,24 +163,33 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [visualizerType, setVisualizerType] = useState('bars'); // 'bars' or 'circle'
   const audioRef = useRef(null);
 
   const formatTime = (time) => {
+    if (isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     const audio = audioRef.current;
-    if (audio) {
+    if (!audio) return;
+
+    try {
       if (isPlaying) {
         audio.pause();
       } else {
-        audio.play().catch(error => {
-          console.log('Play error:', error);
-        });
+        await audio.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.log('Play/pause error:', error);
+      // Fallback: langsung set state tanpa await
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio.play().catch(e => console.log('Play failed:', e));
       }
       setIsPlaying(!isPlaying);
     }
@@ -245,18 +198,29 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   const handleSeek = (e) => {
     const audio = audioRef.current;
     if (audio) {
-      audio.currentTime = e.target.value;
-      setCurrentTime(e.target.value);
+      const newTime = parseFloat(e.target.value);
+      audio.currentTime = newTime;
+      setCurrentTime(newTime);
     }
   };
 
   const handleVolumeChange = (e) => {
     const audio = audioRef.current;
     if (audio) {
-      audio.volume = e.target.value;
-      setVolume(e.target.value);
+      const newVolume = parseFloat(e.target.value);
+      audio.volume = newVolume;
+      setVolume(newVolume);
     }
   };
+
+  // Reset audio when component mounts
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+      audio.currentTime = currentTime;
+    }
+  }, []);
 
   // Versi Mini Player (untuk beranda)
   if (!isMusicPage) {
@@ -268,7 +232,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             <img
               src="/album-cover.jpg"
               alt="Album Cover"
-              className="w-12 h-12 rounded-md object-cover"
+              className="w-12 h-12 rounded-md object-cover bg-gray-700"
+              onError={(e) => {
+                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
+              }}
             />
             <div className="min-w-0 flex-1">
               <p className="text-white font-medium text-sm truncate">Mind Games</p>
@@ -280,7 +247,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           <div className="flex items-center space-x-4 flex-1 justify-center">
             <button
               onClick={handlePlayPause}
-              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
             >
               {isPlaying ? (
                 <div className="w-3 h-3 bg-black"></div>
@@ -311,11 +278,20 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           ref={audioRef}
           id="main-audio"
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-          onLoadedMetadata={(e) => setDuration(e.target.duration)}
+          onLoadedMetadata={(e) => {
+            setDuration(e.target.duration);
+            setCurrentTime(0);
+          }}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
+          preload="metadata"
         >
           <source src="/bgm.mp3" type="audio/mp3" />
+          <source src="/bgm.ogg" type="audio/ogg" />
           Your browser does not support the audio element.
         </audio>
       </div>
@@ -326,35 +302,9 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pb-32">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Visualizer Toggle */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-gray-800/50 rounded-full p-1 backdrop-blur-sm">
-            <button
-              onClick={() => setVisualizerType('bars')}
-              className={`px-4 py-2 rounded-full transition-all ${
-                visualizerType === 'bars' ? 'bg-green-500 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Bars
-            </button>
-            <button
-              onClick={() => setVisualizerType('circle')}
-              className={`px-4 py-2 rounded-full transition-all ${
-                visualizerType === 'circle' ? 'bg-green-500 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Circle
-            </button>
-          </div>
-        </div>
-
         {/* Music Visualizer */}
         <div className="mb-8">
-          {visualizerType === 'bars' ? (
-            <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
-          ) : (
-            <CircleVisualizer isPlaying={isPlaying} audioRef={audioRef} />
-          )}
+          <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
         </div>
 
         {/* Album Art & Info */}
@@ -362,7 +312,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           <img
             src="/album-cover.jpg"
             alt="Album Cover"
-            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30"
+            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30 bg-gray-800"
+            onError={(e) => {
+              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
+            }}
           />
           <div className="text-center md:text-left">
             <p className="text-green-500 font-semibold mb-2">SEDANG DIPUTAR</p>
@@ -385,10 +338,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             <input
               type="range"
               min="0"
-              max={duration}
+              max={duration || 100}
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
             />
             <div className="flex justify-between text-sm text-gray-400 mt-2">
               <span>{formatTime(currentTime)}</span>
@@ -398,26 +351,41 @@ const AudioPlayer = ({ isMusicPage = false }) => {
 
           {/* Control Buttons */}
           <div className="flex items-center justify-center space-x-8">
-            <button className="text-gray-400 hover:text-white transition-colors">
+            <button 
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.currentTime = Math.max(0, currentTime - 10);
+                }
+              }}
+            >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
               </svg>
             </button>
             
             <button
               onClick={handlePlayPause}
-              className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform hover:bg-green-400"
+              className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 hover:bg-green-400 shadow-lg"
             >
               {isPlaying ? (
-                <div className="w-5 h-5 bg-black"></div>
+                <div className="w-6 h-6 bg-black rounded-sm"></div>
               ) : (
-                <div className="w-0 h-0 border-l-[10px] border-l-black border-y-[6px] border-y-transparent ml-1"></div>
+                <div className="w-0 h-0 border-l-[12px] border-l-black border-y-[8px] border-y-transparent ml-1"></div>
               )}
             </button>
 
-            <button className="text-gray-400 hover:text-white transition-colors">
+            <button 
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.currentTime = 0;
+                  setIsPlaying(false);
+                }
+              }}
+            >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
               </svg>
             </button>
           </div>
@@ -443,7 +411,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         <div className="mt-8 text-center bg-black/30 rounded-xl p-4 backdrop-blur-sm">
           <p className="text-green-400 font-semibold mb-2">NOW PLAYING</p>
           <p className="text-2xl font-bold">Mind Games - Sicksick</p>
-          <p className="text-gray-400 mt-2">Visualizer: {visualizerType === 'bars' ? 'Bars Spectrum' : 'Circle Waves'}</p>
+          <p className="text-gray-400 mt-2">Music Visualizer Active</p>
         </div>
       </div>
 
@@ -451,11 +419,20 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         ref={audioRef}
         id="main-audio"
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.target.duration)}
+        onLoadedMetadata={(e) => {
+          setDuration(e.target.duration);
+          setCurrentTime(0);
+        }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }}
+        preload="metadata"
       >
         <source src="/bgm.mp3" type="audio/mp3" />
+        <source src="/bgm.ogg" type="audio/ogg" />
         Your browser does not support the audio element.
       </audio>
     </div>
