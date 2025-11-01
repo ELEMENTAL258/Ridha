@@ -64,8 +64,8 @@ const AudioPlayer = ({ isMusicPage = false }) => {
               className="w-12 h-12 rounded-md object-cover"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-white font-medium text-sm truncate">Blue</p>
-              <p className="text-gray-400 text-xs truncate">Yung Kai</p>
+              <p className="text-white font-medium text-sm truncate">Mind Games</p>
+              <p className="text-gray-400 text-xs truncate">Sicksick</p>
             </div>
           </div>
 
@@ -127,14 +127,14 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           />
           <div className="text-center md:text-left">
             <p className="text-green-500 font-semibold mb-2">SEDANG DIPUTAR</p>
-            <h1 className="text-5xl font-bold mb-4">Blue</h1>
-            <p className="text-2xl text-gray-300 mb-6">Yung Kai</p>
+            <h1 className="text-5xl font-bold mb-4">Mind Games</h1>
+            <p className="text-2xl text-gray-300 mb-6">Sicksick</p>
             <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <span>2024</span>
+              <span>2025</span>
               <span>•</span>
               <span>1 lagu</span>
               <span>•</span>
-              <span>3:45</span>
+              <span>4:01</span>
             </div>
           </div>
         </div>
