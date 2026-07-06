@@ -1,4 +1,4 @@
-.import { SpeedInsights } from "@vercel/speed-insights/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Instagram, Youtube, Twitter, Phone, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
