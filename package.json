@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@vercel/speed-insights": "^1.2.0",
-    "lucide-react": "^0.475.0",
-    "next": "15.1.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@vercel/speed-insights": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
