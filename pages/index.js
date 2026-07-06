@@ -24,9 +24,10 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
 
     const setupAudioContext = async () => {
       try {
-        if (audioContextRef.current) {
+        if (audioContextRef.current || audioRef.current.dataset.audioContextSetup) {
           return;
         }
+        audioRef.current.dataset.audioContextSetup = "true";
 
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContextRef.current.createMediaElementSource(audioRef.current);
@@ -263,6 +264,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         <audio
           ref={audioRef}
           id="main-audio"
+          className="hidden"
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
           onLoadedMetadata={(e) => {
             setDuration(e.target.duration);
@@ -274,9 +276,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
             setIsPlaying(false);
             setCurrentTime(0);
           }}
+          onError={(e) => console.log('Audio failed to load:', e)}
           preload="metadata"
         >
-          <source src="/bgm.mp3" type="audio/mp3" />
+          <source src="/bgm.mp3" type="audio/mpeg" />
           <source src="/bgm.ogg" type="audio/ogg" />
           Your browser does not support the audio element.
         </audio>
@@ -397,6 +400,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       <audio
         ref={audioRef}
         id="main-audio"
+        className="hidden"
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
         onLoadedMetadata={(e) => {
           setDuration(e.target.duration);
@@ -408,9 +412,10 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           setIsPlaying(false);
           setCurrentTime(0);
         }}
+        onError={(e) => console.log('Audio failed to load:', e)}
         preload="metadata"
       >
-        <source src="/bgm.mp3" type="audio/mp3" />
+        <source src="/bgm.mp3" type="audio/mpeg" />
         <source src="/bgm.ogg" type="audio/ogg" />
         Your browser does not support the audio element.
       </audio>
