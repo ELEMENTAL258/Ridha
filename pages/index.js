@@ -1,5 +1,5 @@
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Instagram, Youtube, Twitter, Phone, Home, Music } from "lucide-react";
+import { Instagram, Youtube, Twitter, Phone, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 // Sparkle Component
@@ -129,13 +129,14 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
   );
 };
 
-// Audio Player Component
-const AudioPlayer = ({ isMusicPage = false }) => {
+// Audio Player Component with Search Capability
+const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, audioRef }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const audioRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const formatTime = (time) => {
     if (isNaN(time)) return "0:00";
@@ -168,28 +169,78 @@ const AudioPlayer = ({ isMusicPage = false }) => {
     }
   };
 
-  const handleVolumeChange = (e) => {
-    const audio = audioRef.current;
-    if (audio) {
-      const newVolume = parseFloat(e.target.value);
-      audio.volume = newVolume;
-      setVolume(newVolume);
+  // Search Logic utilizing Piped/Invidious public API instances (No API Key required)
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsLoading(true);
+    try {
+      // Menggunakan instance PWA / alternative API publik bebas akses
+      const response = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
+      const data = await response.json();
+      
+      if (data && data.items) {
+        setSearchResults(data.items.slice(0, 5)); // Ambil 5 hasil teratas
+      }
+    } catch (error) {
+      console.error("Gagal melakukan pencarian musik:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const selectTrack = async (item) => {
+    setIsLoading(true);
+    try {
+      // Mendapatkan stream URL langsung dari track id tanpa API Key resmi
+      const res = await fetch(`https://pipedapi.kavin.rocks/streams/${item.url.split("v=")[1]}`);
+      const streamData = await res.json();
+      
+      // Filter audio stream dengan kualitas terbaik atau ambil opsional audio teratas
+      const audioStream = streamData.audioStreams?.find(stream => stream.mimeType.includes("audio/webm")) || streamData.audioStreams?.[0];
+
+      if (audioStream && audioStream.url) {
+        setCurrentTrack({
+          title: item.title,
+          artist: item.uploaderName || "Unknown Artist",
+          src: audioStream.url,
+          cover: item.thumbnail || "https://files.catbox.moe/ul5kgd.jpg"
+        });
+        setIsPlaying(true);
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.load();
+            audioRef.current.play().catch(err => console.log("Auto-play blocked:", err));
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Gagal memuat stream audio:", error);
+      alert("Gagal memutar lagu ini, coba lagu atau keyword lainnya.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   if (!isMusicPage) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40 shadow-xl">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <div className="w-12 h-12 bg-red-500 rounded-md flex items-center justify-center text-white font-bold text-xs">HUTAO</div>
+            <img 
+              src={currentTrack.cover} 
+              alt="Cover" 
+              className="w-12 h-12 rounded-md object-cover border border-white/10"
+              onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+            />
             <div className="min-w-0 flex-1">
-              <p className="text-white font-medium text-sm truncate">Mind Games</p>
-              <p className="text-gray-400 text-xs truncate">Sicksick</p>
+              <p className="text-white font-medium text-sm truncate">{currentTrack.title}</p>
+              <p className="text-gray-400 text-xs truncate">{currentTrack.artist}</p>
             </div>
           </div>
           <div className="flex items-center justify-center">
-            <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md hover:scale-105 active:scale-95 transition-transform">
+            <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md hover:scale-105 active:scale-95 transition-transform font-bold text-sm">
               {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
@@ -199,12 +250,14 @@ const AudioPlayer = ({ isMusicPage = false }) => {
         </div>
         <audio
           ref={audioRef}
+          key={currentTrack.src}
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.target.duration)}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
         >
-          <source src="/bgm.mp3" type="audio/mp3" />
+          <source src={currentTrack.src} type="audio/mp3" />
+          <source src={currentTrack.src} type="audio/webm" />
         </audio>
       </div>
     );
@@ -215,10 +268,69 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       <div className="mb-6">
         <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
       </div>
+
+      {/* Dynamic Music Search Section */}
+      <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-6">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Cari lagu bebas di sini... (Contoh: Sicksick Mind Games)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/10 border border-white/10 rounded-xl py-2 px-4 pl-10 text-sm focus:outline-none focus:border-red-500 text-white placeholder-gray-400"
+            />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-red-500 hover:bg-red-600 disabled:bg-red-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1 transition-colors"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cari"}
+          </button>
+        </form>
+
+        {/* Search Results List */}
+        {searchResults.length > 0 && (
+          <div className="mt-4 space-y-2 border-t border-white/5 pt-3">
+            <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">Hasil Pencarian:</p>
+            {searchResults.map((item, index) => (
+              <div 
+                key={index}
+                onClick={() => selectTrack(item)}
+                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-all border border-transparent hover:border-white/5"
+              >
+                <img 
+                  src={item.thumbnail} 
+                  alt="Thumb" 
+                  className="w-10 h-10 rounded object-cover"
+                  onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-white">{item.title}</p>
+                  <p className="text-xs text-gray-400 truncate">{item.uploaderName || "Unknown"}</p>
+                </div>
+                <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+                  {item.duration ? formatTime(item.duration) : "Song"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Main Stream Player Control Card */}
       <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">Mind Games</h2>
-          <p className="text-gray-400">Sicksick</p>
+        <div className="flex flex-col items-center text-center mb-6">
+          <img 
+            src={currentTrack.cover} 
+            alt="Track Artwork" 
+            className="w-32 h-32 rounded-xl object-cover mb-4 border-2 border-red-500/30 shadow-lg"
+            onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+          />
+          <h2 className="text-2xl font-bold truncate max-w-full px-4">{currentTrack.title}</h2>
+          <p className="text-gray-400 truncate max-w-full px-4">{currentTrack.artist}</p>
         </div>
         <input
           type="range"
@@ -232,7 +344,7 @@ const AudioPlayer = ({ isMusicPage = false }) => {
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
-        <div className="flex justify-center items-center space-x-6">
+        <div className="flex justify-center items-center">
           <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600 transition-colors">
             {isPlaying ? "⏸" : "▶"}
           </button>
@@ -240,12 +352,14 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       </div>
       <audio
         ref={audioRef}
+        key={currentTrack.src}
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
         onLoadedMetadata={(e) => setDuration(e.target.duration)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       >
-        <source src="/bgm.mp3" type="audio/mp3" />
+        <source src={currentTrack.src} type="audio/mp3" />
+        <source src={currentTrack.src} type="audio/webm" />
       </audio>
     </div>
   );
@@ -259,6 +373,16 @@ const ProfilePage = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  
+  // Shared audio state across page views
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState({
+    title: "Mind Games",
+    artist: "Sicksick",
+    src: "/bgm.mp3",
+    cover: "https://files.catbox.moe/ul5kgd.jpg"
+  });
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -387,12 +511,28 @@ const ProfilePage = () => {
         </main>
       ) : (
         <div className="pt-20">
-          <AudioPlayer isMusicPage={true} />
+          <AudioPlayer 
+            isMusicPage={true} 
+            currentTrack={currentTrack}
+            setCurrentTrack={setCurrentTrack}
+            isPlaying={isPlaying}
+            setIsPlaying={setIsPlaying}
+            audioRef={audioRef}
+          />
         </div>
       )}
 
       {/* Mini Music Player Sticky */}
-      {currentPage === "beranda" && <AudioPlayer isMusicPage={false} />}
+      {currentPage === "beranda" && (
+        <AudioPlayer 
+          isMusicPage={false} 
+          currentTrack={currentTrack}
+          setCurrentTrack={setCurrentTrack}
+          isPlaying={isPlaying}
+          setIsPlaying={setIsPlaying}
+          audioRef={audioRef}
+        />
+      )}
     </div>
   );
 };
