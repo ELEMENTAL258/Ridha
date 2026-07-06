@@ -1,5 +1,5 @@
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Instagram, Youtube, Twitter, Phone, Home, Music, Download } from "lucide-react";
+import { Instagram, Youtube, Twitter, Phone, Home, Music } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 // Sparkle Component
@@ -10,7 +10,7 @@ const Sparkle = ({ style, color }) => (
   />
 );
 
-// Music Visualizer Component (Bars only)
+// Music Visualizer Component
 const MusicVisualizer = ({ isPlaying, audioRef }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -24,10 +24,7 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
 
     const setupAudioContext = async () => {
       try {
-        if (audioContextRef.current || audioRef.current.dataset.audioContextSetup) {
-          return;
-        }
-        audioRef.current.dataset.audioContextSetup = "true";
+        if (audioContextRef.current) return;
 
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContextRef.current.createMediaElementSource(audioRef.current);
@@ -53,9 +50,7 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
     }
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [isPlaying, audioRef]);
 
@@ -74,7 +69,6 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
       }
 
       animationRef.current = requestAnimationFrame(draw);
-      
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -85,21 +79,14 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
 
       for (let i = 0; i < bufferLengthRef.current; i++) {
         const barHeight = (dataArrayRef.current[i] / 255) * height;
-        
         const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
         gradient.addColorStop(0, '#10b981');
         gradient.addColorStop(0.6, '#3b82f6');
         gradient.addColorStop(1, '#8b5cf6');
 
         ctx.fillStyle = gradient;
-        
         const roundedBarHeight = Math.max(barHeight, 2);
         ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
-
-        ctx.shadowColor = '#10b981';
-        ctx.shadowBlur = 5;
-        ctx.fillRect(x, height - roundedBarHeight, barWidth, roundedBarHeight);
-        ctx.shadowBlur = 0;
 
         x += barWidth + 1;
       }
@@ -131,25 +118,18 @@ const MusicVisualizer = ({ isPlaying, audioRef }) => {
     }
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [isPlaying]);
 
   return (
     <div className="w-full h-32 bg-black/20 rounded-lg overflow-hidden backdrop-blur-sm border border-gray-700/30">
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={128}
-        className="w-full h-full"
-      />
+      <canvas ref={canvasRef} width={800} height={128} className="w-full h-full" />
     </div>
   );
 };
 
-// Audio Player Component (Spotify-like)
+// Audio Player Component
 const AudioPlayer = ({ isMusicPage = false }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -167,7 +147,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
   const handlePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-
     try {
       if (isPlaying) {
         audio.pause();
@@ -177,12 +156,6 @@ const AudioPlayer = ({ isMusicPage = false }) => {
       setIsPlaying(!isPlaying);
     } catch (error) {
       console.log('Play/pause error:', error);
-      if (isPlaying) {
-        audio.pause();
-      } else {
-        audio.play().catch(e => console.log('Play failed:', e));
-      }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -204,225 +177,81 @@ const AudioPlayer = ({ isMusicPage = false }) => {
     }
   };
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.volume = volume;
-      audio.currentTime = currentTime;
-    }
-  }, []);
-
-  // Versi Mini Player (untuk beranda)
   if (!isMusicPage) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <img
-              src="/album-cover.jpg"
-              alt="Album Cover"
-              className="w-12 h-12 rounded-md object-cover bg-gray-700"
-              onError={(e) => {
-                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
-              }}
-            />
+            <div className="w-12 h-12 bg-red-500 rounded-md flex items-center justify-center text-white font-bold text-xs">HUTAO</div>
             <div className="min-w-0 flex-1">
               <p className="text-white font-medium text-sm truncate">Mind Games</p>
               <p className="text-gray-400 text-xs truncate">Sicksick</p>
             </div>
           </div>
-
-          <div className="flex items-center space-x-4 flex-1 justify-center">
-            <button
-              onClick={handlePlayPause}
-              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
-            >
-              {isPlaying ? (
-                <div className="w-3 h-3 bg-black"></div>
-              ) : (
-                <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div>
-              )}
+          <div className="flex items-center justify-center">
+            <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md hover:scale-105 active:scale-95 transition-transform">
+              {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
-
-          <div className="flex items-center space-x-3 flex-1 justify-end">
-            <div className="text-white text-xs hidden sm:block">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 accent-green-500 hidden md:block"
-            />
+          <div className="text-white text-xs hidden sm:block flex-1 text-right">
+            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
-
         <audio
           ref={audioRef}
-          id="main-audio"
-          className="hidden"
           onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-          onLoadedMetadata={(e) => {
-            setDuration(e.target.duration);
-            setCurrentTime(0);
-          }}
+          onLoadedMetadata={(e) => setDuration(e.target.duration)}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          onEnded={() => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-          }}
-          onError={(e) => console.log('Audio failed to load:', e)}
-          preload="metadata"
         >
-          <source src="/bgm.mp3" type="audio/mpeg" />
-          <source src="/bgm.ogg" type="audio/ogg" />
-          Your browser does not support the audio element.
+          <source src="/bgm.mp3" type="audio/mp3" />
         </audio>
       </div>
     );
   }
 
-  // Versi Full Music Page (Spotify-like dengan Visualizer)
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pb-32">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
+    <div className="max-w-3xl mx-auto px-4 py-8 text-white">
+      <div className="mb-6">
+        <MusicVisualizer isPlaying={isPlaying} audioRef={audioRef} />
+      </div>
+      <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold">Mind Games</h2>
+          <p className="text-gray-400">Sicksick</p>
         </div>
-
-        <div className="flex flex-col md:flex-row items-center md:items-end space-y-6 md:space-y-0 md:space-x-8 mb-8">
-          <img
-            src="/album-cover.jpg"
-            alt="Album Cover"
-            className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl object-cover border-4 border-green-500/30 bg-gray-800"
-            onError={(e) => {
-              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'%3E%3C/path%3E%3Ccircle cx='6' cy='18' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='16' r='3'%3E%3C/circle%3E%3C/svg%3E";
-            }}
-          />
-          <div className="text-center md:text-left">
-            <p className="text-green-500 font-semibold mb-2">SEDANG DIPUTAR</p>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mind Games</h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-6">Sicksick</p>
-            <div className="flex items-center space-x-4 text-sm text-gray-400 justify-center md:justify-start">
-              <span>2025</span>
-              <span>•</span>
-              <span>1 lagu</span>
-              <span>•</span>
-              <span>4:01</span>
-            </div>
-          </div>
+        <input
+          type="range"
+          min="0"
+          max={duration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="w-full accent-red-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer mb-2"
+        />
+        <div className="flex justify-between text-xs text-gray-400 mb-6">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
-
-        <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
-          <div className="mb-6">
-            <input
-              type="range"
-              min="0"
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
-            />
-            <div className="flex justify-between text-sm text-gray-400 mt-2">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center space-x-8">
-            <button 
-              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
-              onClick={() => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = Math.max(0, currentTime - 10);
-                }
-              }}
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-              </svg>
-            </button>
-            
-            <button
-              onClick={handlePlayPause}
-              className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 hover:bg-green-400 shadow-lg"
-            >
-              {isPlaying ? (
-                <div className="w-6 h-6 bg-black rounded-sm"></div>
-              ) : (
-                <div className="w-0 h-0 border-l-[12px] border-l-black border-y-[8px] border-y-transparent ml-1"></div>
-              )}
-            </button>
-
-            <button 
-              className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
-              onClick={() => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = 0;
-                  setIsPlaying(false);
-                }
-              }}
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex items-center justify-center space-x-4 mt-6">
-            <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-            </svg>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-32 accent-green-500"
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 text-center bg-black/30 rounded-xl p-4 backdrop-blur-sm">
-          <p className="text-green-400 font-semibold mb-2">NOW PLAYING</p>
-          <p className="text-2xl font-bold">Mind Games - Sicksick</p>
-          <p className="text-gray-400 mt-2">Music Visualizer Active</p>
+        <div className="flex justify-center items-center space-x-6">
+          <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600 transition-colors">
+            {isPlaying ? "⏸" : "▶"}
+          </button>
         </div>
       </div>
-
       <audio
         ref={audioRef}
-        id="main-audio"
-        className="hidden"
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onLoadedMetadata={(e) => {
-          setDuration(e.target.duration);
-          setCurrentTime(0);
-        }}
+        onLoadedMetadata={(e) => setDuration(e.target.duration)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-        }}
-        onError={(e) => console.log('Audio failed to load:', e)}
-        preload="metadata"
       >
-        <source src="/bgm.mp3" type="audio/mpeg" />
-        <source src="/bgm.ogg" type="audio/ogg" />
-        Your browser does not support the audio element.
+        <source src="/bgm.mp3" type="audio/mp3" />
       </audio>
     </div>
   );
 };
 
+// Main Profile Page Component
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
   const [currentPage, setCurrentPage] = useState("beranda");
@@ -431,62 +260,27 @@ const ProfilePage = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
-  // PWA Installation Logic
   useEffect(() => {
-    // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsStandalone(true);
     }
+    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    setIsIOS(checkIOS);
 
-    // Check if iOS (different install method)
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    setIsIOS(isIOS);
-
-    // Handle before install prompt
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Show prompt after 3 seconds
-      setTimeout(() => {
-        setShowInstallPrompt(true);
-      }, 3000);
+      setTimeout(() => setShowInstallPrompt(true), 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-
-    // Check if already installed
-    window.addEventListener('appinstalled', () => {
-      setShowInstallPrompt(false);
-      setIsStandalone(true);
-    });
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShowInstallPrompt(false);
-        setIsStandalone(true);
-      }
-      setDeferredPrompt(null);
-    }
-  };
-
-  const handleIOSInstall = () => {
-    setShowInstallPrompt(false);
-    // For iOS, we show instructions
-    alert('Untuk install app di iOS:\n1. Tap share button (kotak dengan panah)\n2. Pilih "Add to Home Screen"');
-  };
 
   useEffect(() => {
     const colors = ["white", "lightblue", "yellow"];
     const generateSparkles = () => {
-      const newSparkles = Array.from({ length: 50 }, (_, i) => ({
+      const newSparkles = Array.from({ length: 30 }, (_, i) => ({
         id: i,
         style: {
           top: `${Math.random() * 100}vh`,
@@ -498,155 +292,108 @@ const ProfilePage = () => {
       }));
       setSparkles(newSparkles);
     };
-
     generateSparkles();
-    const interval = setInterval(generateSparkles, 5000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Navigation Component
   const Navigation = () => (
-    <nav className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-md z-50">
-      <div className="max-w-3xl mx-auto px-4 py-3">
-        <div className="flex justify-center space-x-8">
-          <button
-            onClick={() => setCurrentPage("beranda")}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-              currentPage === "beranda"
-                ? "bg-red-500 text-white"
-                : "text-gray-300 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            <span>Beranda</span>
-          </button>
-          <button
-            onClick={() => setCurrentPage("musik")}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-              currentPage === "musik"
-                ? "bg-green-500 text-white"
-                : "text-gray-300 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Music className="w-5 h-5" />
-            <span>Musik</span>
-          </button>
-        </div>
+    <nav className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-md z-50 border-b border-white/10">
+      <div className="max-w-3xl mx-auto px-4 py-3 flex justify-center space-x-6">
+        <button
+          onClick={() => setCurrentPage("beranda")}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            currentPage === "beranda" ? "bg-red-500 text-white shadow-md" : "text-gray-300 hover:text-white"
+          }`}
+        >
+          <Home className="w-4 h-4" />
+          <span>Beranda</span>
+        </button>
+        <button
+          onClick={() => setCurrentPage("musik")}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            currentPage === "musik" ? "bg-red-500 text-white shadow-md" : "text-gray-300 hover:text-white"
+          }`}
+        >
+          <Music className="w-4 h-4" />
+          <span>Musik</span>
+        </button>
       </div>
     </nav>
   );
 
-  // Beranda Page
-  if (currentPage === "beranda") {
-    return (
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-800 via-red-600 to-red-400 pb-32">
-        <SpeedInsights />
-        <Navigation />
+  return (
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-800 to-red-600 pb-32 font-sans selection:bg-red-500 selection:text-white">
+      <SpeedInsights />
+      <Navigation />
 
-        {/* Sparkle */}
-        {sparkles.map((sparkle) => (
-          <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
-        ))}
+      {/* Sparkles Effect */}
+      {sparkles.map((sparkle) => (
+        <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
+      ))}
 
-        <main className="max-w-3xl mx-auto px-4 py-20 relative z-10">
-          {/* PWA Badge */}
+      {currentPage === "beranda" ? (
+        <main className="max-w-xl mx-auto px-4 pt-24 pb-12 relative z-10 flex flex-col items-center">
           {isStandalone && (
-            <div className="fixed top-16 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium z-30">
-              📱 App
+            <div className="bg-white/20 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full mb-4">
+              📱 PWA Mode Active
             </div>
           )}
 
-          <div className="flex justify-center mb-8">
-            <div className="relative w-48 h-48">
-              <div className="absolute inset-0 bg-red-300 rounded-full blur-md animate-pulse" />
-              <img
-                src="https://files.catbox.moe/ul5kgd.jpg"
-                alt="Profile Picture"
-                className="relative rounded-full shadow-lg border-4 border-white w-48 h-48 object-cover"
-              />
-            </div>
+          {/* Avatar Area */}
+          <div className="relative mb-6 group">
+            <div className="absolute inset-0 bg-red-400 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity animate-pulse" />
+            <img
+              src="https://files.catbox.moe/ul5kgd.jpg"
+              alt="Profile Picture"
+              className="relative rounded-full shadow-2xl border-4 border-white w-40 h-40 object-cover transform hover:scale-105 transition-transform duration-300"
+            />
           </div>
 
-          <div className="text-center mb-12 animate-fadeIn">
-            <h1 className="text-4xl font-bold mb-4 text-white">RIDHA SUKA HUTAO</h1>
-            <p className="text-xl text-red-100 mb-6">
+          {/* Profile Identity */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-extrabold tracking-wide text-white mb-2 drop-shadow-md">
+              RIDHA SUKA HUTAO
+            </h1>
+            <p className="text-sm font-semibold text-red-200 uppercase tracking-widest mb-4">
               Web Developer & Digital Creator
             </p>
-            <p className="text-red-100 leading-relaxed max-w-2xl mx-auto">
+            <div className="bg-black/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10 text-red-50 text-sm leading-relaxed text-left shadow-inner">
               Hai! Namaku Ridha, dan aku adalah seorang web developer dan pengembang bot WhatsApp pemula. Aku memiliki pengalaman dari teman-teman saya yang mengajarkan dan belajar otodidak. Karena rasa penasaran dan keinginan mempelajari hal baru, aku jadi semangat belajar hal baru.
-            </p>
-          </div>
-
-          <div className="space-y-4 max-w-md mx-auto">
-            {[
-              { href: "https://instagram.com/fathy_847", icon: Instagram, text: "Follow on Instagram" },
-              { href: "https://youtube.com/@ELEMENTALGOO", icon: Youtube, text: "Subscribe on YouTube" },
-              { href: "https://x.com/ElementalGoo?t=P-6WPtrV75ZiKZDt-4y_Mg&s=09", icon: Twitter, text: "Follow on Twitter or X" },
-              { href: "https://wa.me/6287870946702", icon: Phone, text: "Owner Ridha" },
-              { href: "https://wa.me/6287757267678", icon: Phone, text: "Bot Whatsapp" },
-            ].map((button, index) => (
-              <a
-                key={index}
-                href={button.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center p-4 bg-white/10 backdrop-blur-sm text-white rounded-lg shadow-md hover:scale-105 hover:bg-white/20 transition-all duration-300"
-              >
-                <button.icon className="w-6 h-6 mr-3" />
-                <span className="font-medium">{button.text}</span>
-              </a>
-            ))}
-          </div>
-        </main>
-
-        {/* Install PWA Prompt */}
-        {showInstallPrompt && !isStandalone && (
-          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 p-4 rounded-lg shadow-2xl z-50 max-w-sm mx-4 border-2 border-green-500">
-            <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <Download className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-lg">Install App</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Install aplikasi untuk experience yang lebih baik! Buka offline dan load lebih cepat.
-                </p>
-                <div className="flex space-x-2 mt-3">
-                  <button
-                    onClick={() => setShowInstallPrompt(false)}
-                    className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 font-medium"
-                  >
-                    Nanti
-                  </button>
-                  <button
-                    onClick={isIOS ? handleIOSInstall : handleInstallClick}
-                    className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 font-medium flex items-center space-x-1"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Install</span>
-                  </button>
-                </div>
-                {isIOS && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    *Untuk iOS: Tap share → "Add to Home Screen"
-                  </p>
-                )}
-              </div>
             </div>
           </div>
-        )}
 
-        <AudioPlayer isMusicPage={false} />
-      </div>
-    );
-  }
+          {/* Navigation Links (Linktree Style) */}
+          <div className="w-full space-y-3">
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
+              <Instagram className="w-5 h-5 text-pink-400" />
+              <span className="font-medium text-sm">Follow on Instagram</span>
+            </a>
+            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
+              <Youtube className="w-5 h-5 text-red-500" />
+              <span className="font-medium text-sm">Subscribe on YouTube</span>
+            </a>
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
+              <Twitter className="w-5 h-5 text-sky-400" />
+              <span className="font-medium text-sm">Follow on Twitter or X</span>
+            </a>
+            <a href="#" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
+              <Phone className="w-5 h-5 text-green-400" />
+              <span className="font-medium text-sm">Owner Ridha</span>
+            </a>
+            <a href="#" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
+              <Phone className="w-5 h-5 text-emerald-400" />
+              <span className="font-medium text-sm">Bot Whatsapp</span>
+            </a>
+          </div>
+        </main>
+      ) : (
+        <div className="pt-20">
+          <AudioPlayer isMusicPage={true} />
+        </div>
+      )}
 
-  // Musik Page
-  return (
-    <>
-      <Navigation />
-      <AudioPlayer isMusicPage={true} />
-    </>
+      {/* Mini Music Player Sticky */}
+      {currentPage === "beranda" && <AudioPlayer isMusicPage={false} />}
+    </div>
   );
 };
 
