@@ -169,23 +169,23 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     }
   };
 
-  // Search Logic utilizing Piped/Invidious public API instances (No API Key required)
+  // Search Logic terupdate menggunakan API Instance alternatif yang jauh lebih stabil
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsLoading(true);
     try {
-      // Menggunakan instance PWA / alternative API publik bebas akses
-      const response = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
+      // Dialihkan ke api.piped.yt yang aktif dan responsif
+      const response = await fetch(`https://api.piped.yt/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
       const data = await response.json();
       
       if (data && data.items) {
-        setSearchResults(data.items.slice(0, 5)); // Ambil 5 hasil teratas
+        setSearchResults(data.items.slice(0, 5)); // Mengambil 5 hasil lagu teratas
       }
     } catch (error) {
       console.error("Gagal melakukan pencarian musik:", error);
-    } finally {
+    } final {
       setIsLoading(false);
     }
   };
@@ -193,11 +193,10 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   const selectTrack = async (item) => {
     setIsLoading(true);
     try {
-      // Mendapatkan stream URL langsung dari track id tanpa API Key resmi
-      const res = await fetch(`https://pipedapi.kavin.rocks/streams/${item.url.split("v=")[1]}`);
+      // Membaca audio stream dari instance alternatif yang stabil
+      const res = await fetch(`https://api.piped.yt/streams/${item.url.split("v=")[1]}`);
       const streamData = await res.json();
       
-      // Filter audio stream dengan kualitas terbaik atau ambil opsional audio teratas
       const audioStream = streamData.audioStreams?.find(stream => stream.mimeType.includes("audio/webm")) || streamData.audioStreams?.[0];
 
       if (audioStream && audioStream.url) {
@@ -217,8 +216,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
       }
     } catch (error) {
       console.error("Gagal memuat stream audio:", error);
-      alert("Gagal memutar lagu ini, coba lagu atau keyword lainnya.");
-    } finally {
+      alert("Gagal memutar lagu ini, silakan coba kata kunci lain.");
+    } final {
       setIsLoading(false);
     }
   };
@@ -499,33 +498,25 @@ const ProfilePage = () => {
               <Twitter className="w-5 h-5 text-sky-400" />
               <span className="font-medium text-sm">Follow on Twitter or X</span>
             </a>
-            <a href="#" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
-              <Phone className="w-5 h-5 text-green-400" />
-              <span className="font-medium text-sm">Owner Ridha</span>
-            </a>
-            <a href="#" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10 shadow-sm hover:translate-x-1">
-              <Phone className="w-5 h-5 text-emerald-400" />
-              <span className="font-medium text-sm">Bot Whatsapp</span>
-            </a>
           </div>
         </main>
       ) : (
-        <div className="pt-20">
+        <main className="pt-24 relative z-10">
           <AudioPlayer 
-            isMusicPage={true} 
+            isMusicPage={true}
             currentTrack={currentTrack}
             setCurrentTrack={setCurrentTrack}
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
             audioRef={audioRef}
           />
-        </div>
+        </main>
       )}
 
-      {/* Mini Music Player Sticky */}
-      {currentPage === "beranda" && (
+      {/* Global Bottom Mini Player */}
+      {currentPage !== "musik" && (
         <AudioPlayer 
-          isMusicPage={false} 
+          isMusicPage={false}
           currentTrack={currentTrack}
           setCurrentTrack={setCurrentTrack}
           isPlaying={isPlaying}
