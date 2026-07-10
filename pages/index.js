@@ -185,7 +185,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
       }
     } catch (error) {
       console.error("Gagal melakukan pencarian musik:", error);
-    } final {
+    } finally {
       setIsLoading(false);
     }
   };
@@ -217,7 +217,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     } catch (error) {
       console.error("Gagal memuat stream audio:", error);
       alert("Gagal memutar lagu ini, silakan coba kata kunci lain.");
-    } final {
+    } finally {
       setIsLoading(false);
     }
   };
