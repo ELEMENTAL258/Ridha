@@ -18,7 +18,6 @@ const AudioVisualizer = ({ isPlaying }) => {
   return (
     <div className="flex items-end justify-center gap-1 h-8 mt-2 px-2">
       {[...Array(12)].map((_, i) => {
-        // Membuat variasi durasi animasi acak untuk tiap bar
         const duration = 0.5 + Math.random() * 0.8;
         return (
           <div
@@ -83,7 +82,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
 
     setIsLoading(true);
     try {
-      // Menggunakan instance publik alternatif kavin rocks yang lebih update
       const response = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
       const data = await response.json();
       if (data && data.items) {
@@ -108,7 +106,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           title: item.title,
           artist: item.uploaderName || "Unknown Artist",
           src: audioStream.url,
-          cover: item.thumbnail || "/album-cover.jpg" // Fallback ke album cover lokal
+          cover: item.thumbnail || "/album-cover.jpg"
         });
         setIsPlaying(true);
         setTimeout(() => {
@@ -142,7 +140,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             </div>
           </div>
           
-          {/* Mini Visualizer di bottom bar */}
           <div className="hidden md:block w-24">
             <AudioVisualizer isPlaying={isPlaying} />
           </div>
@@ -229,7 +226,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <h2 className="text-2xl font-bold truncate max-w-full px-4">{currentTrack.title}</h2>
           <p className="text-gray-400 truncate max-w-full px-4 mb-2">{currentTrack.artist}</p>
           
-          {/* Main Visualizer diletakkan di tengah panel musik */}
           <AudioVisualizer isPlaying={isPlaying} />
         </div>
 
@@ -275,7 +271,7 @@ const ProfilePage = () => {
     title: "Mind Games",
     artist: "Sicksick",
     src: "/bgm.mp3",
-    cover: "/album-cover.jpg" // Menggunakan file lokal dari folder public kamu
+    cover: "/album-cover.jpg"
   });
   const audioRef = useRef(null);
 
@@ -283,11 +279,11 @@ const ProfilePage = () => {
     const colors = ["#ffffff", "#93c5fd", "#fef08a", "#fca5a5"];
     const generateSparkles = () => {
       const newSparkles = Array.from({ length: 45 }, (_, i) => {
-        const size = Math.random() * 3 + 2; // Ukuran bintik bervariasi (2px - 5px)
-        const moveX = (Math.random() - 0.5) * 50; // Jarak gerak horizontal acak
-        const moveY = (Math.random() - 0.5) * 50; // Jarak gerak vertikal acak
-        const durationFloat = 4 + Math.random() * 6; // Kecepatan gerak melayang acak (4s - 10s)
-        const durationTwinkle = 1 + Math.random() * 2; // Kecepatan kedip acak (1s - 3s)
+        const size = Math.random() * 3 + 2;
+        const moveX = (Math.random() - 0.5) * 50;
+        const moveY = (Math.random() - 0.5) * 50;
+        const durationFloat = 4 + Math.random() * 6;
+        const durationTwinkle = 1 + Math.random() * 2;
 
         return {
           id: i,
@@ -336,7 +332,6 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-900 to-red-800 pb-32 font-sans selection:bg-red-500 selection:text-white">
-      {/* CSS Injection untuk menangani animasi kustom bintang & visualizer */}
       <style jsx global>{`
         @keyframes twinkleAnimation {
           0% { opacity: 0.2; transform: scale(0.8); }
@@ -357,7 +352,6 @@ const ProfilePage = () => {
 
       <Navigation />
 
-      {/* Background Bintang Bergerak Random & Kedip */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {sparkles.map((sparkle) => (
           <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
@@ -369,7 +363,7 @@ const ProfilePage = () => {
           <div className="relative mb-6 group">
             <div className="absolute inset-0 bg-red-400 rounded-full blur-xl opacity-60 animate-pulse" />
             <img
-              src="/album-cover.jpg" // Menggunakan file album-cover di profil juga agar senada
+              src="https://files.catbox.moe/ul5kgd.jpg"
               alt="Profile Picture"
               className="relative rounded-full shadow-2xl border-4 border-white w-40 h-40 object-cover"
             />
