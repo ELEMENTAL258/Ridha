@@ -37,7 +37,7 @@ const AudioVisualizer = ({ isPlaying }) => {
   );
 };
 
-// Audio Player Component - Mendukung Fitur Menit (Seek Slider) & YouTube Player API FIX
+// Audio Player Component - MENGGUNAKAN YOUTUBE IFRAME API RESMI (ANTI-BUG MENIT)
 const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -46,60 +46,100 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   
-  const iframeRef = useRef(null);
+  const playerRef = useRef(null); 
+  const containerId = isMusicPage ? "yt-player-main" : "yt-player-bottom";
   const YOUTUBE_API_KEY = "AIzaSyDcYX3MXSm5WLwX7Kx_klCdA2cDhvYG04U";
 
-  // Memantau perkembangan waktu lagu via YouTube postMessage API (Aman dari Hidden Iframe block)
+  // Load YouTube IFrame API Script secara global
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // Inisialisasi Player saat videoId berubah
   useEffect(() => {
     let timer;
-    
-    const handleYoutubeMessage = (event) => {
-      if (event.origin !== "https://www.youtube.com") return;
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === "infoDelivery" && data.info) {
-          if (data.info.currentTime !== undefined) {
-            setCurrentTime(data.info.currentTime);
-          }
-          if (data.info.duration !== undefined && data.info.duration > 0) {
-            setDuration(data.info.duration);
+
+    const createPlayer = () => {
+      if (!currentTrack.videoId || !window.YT || !window.YT.Player) return;
+
+      // Hancurkan player lama jika ada sebelum membuat yang baru
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        try { playerRef.current.destroy(); } catch(e) {}
+      }
+
+      playerRef.current = new window.YT.Player(containerId, {
+        height: '1',
+        width: '1',
+        videoId: currentTrack.videoId,
+        playerVars: {
+          autoplay: isPlaying ? 1 : 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: (event) => {
+            if (isPlaying) event.target.playVideo();
+            setDuration(event.target.getDuration());
+          },
+          onStateChange: (event) => {
+            // Jika lagu selesai, stop interval
+            if (event.data === window.YT.PlayerState.ENDED) {
+              setIsPlaying(false);
+              setCurrentTime(0);
+            }
           }
         }
-      } catch (e) {
-        // Mengabaikan error parse jika format data non-JSON
-      }
+      });
+
+      // Polling waktu menggunakan internal API (Aman dari cross-origin block)
+      timer = setInterval(() => {
+        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+          const current = playerRef.current.getCurrentTime();
+          const total = playerRef.current.getDuration();
+          setCurrentTime(current);
+          if (total && duration !== total) {
+            setDuration(total);
+          }
+        }
+      }, 500);
     };
 
-    window.addEventListener("message", handleYoutubeMessage);
-
-    if (isPlaying && currentTrack.videoId) {
-      timer = setInterval(() => {
-        if (iframeRef.current && iframeRef.current.contentWindow) {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: "command", func: "getPlayerState", args: [] }),
-            "*"
-          );
-        }
-      }, 1000);
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
     }
 
     return () => {
-      window.removeEventListener("message", handleYoutubeMessage);
       clearInterval(timer);
     };
-  }, [isPlaying, currentTrack.videoId]);
-
-  useEffect(() => {
-    setCurrentTime(0);
-    setDuration(0);
   }, [currentTrack.videoId]);
+
+  // Handle Play dan Pause secara realtime lewat API
+  useEffect(() => {
+    if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
+      if (isPlaying) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
+    }
+  }, [isPlaying]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
   };
 
   const formatTime = (secs) => {
-    if (isNaN(secs)) return "00:00";
+    if (isNaN(secs) || secs === 0) return "00:00";
     const minutes = Math.floor(secs / 60);
     const seconds = Math.floor(secs % 60);
     return `${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
@@ -108,11 +148,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   const handleSeekChange = (e) => {
     const seekTarget = parseFloat(e.target.value);
     setCurrentTime(seekTarget);
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: "seekTo", args: [seekTarget, true] }),
-        "*"
-      );
+    if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+      playerRef.current.seekTo(seekTarget, true);
     }
   };
 
@@ -153,9 +190,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     setIsPlaying(true);
   };
 
-  // Objek Origin URL Dinamis agar YouTube API Valid
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-
   if (!isMusicPage) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40 shadow-xl flex flex-col gap-2">
@@ -177,7 +211,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             <AudioVisualizer isPlaying={isPlaying} />
           </div>
 
-          {/* Progress Bar Mini untuk Bottom Player */}
+          {/* Progress Bar Mini Desktop */}
           <div className="flex-1 max-w-md hidden sm:flex items-center gap-2 px-2">
             <span className="text-gray-400 text-xs font-mono">{formatTime(currentTime)}</span>
             <input 
@@ -198,7 +232,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           </div>
         </div>
 
-        {/* Slider untuk layar HP (Mobile View) */}
+        {/* Slider Mobile (Layar HP) */}
         <div className="w-full max-w-3xl mx-auto sm:hidden flex items-center gap-2 px-1">
           <span className="text-gray-400 text-[10px] font-mono">{formatTime(currentTime)}</span>
           <input 
@@ -212,16 +246,10 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <span className="text-gray-400 text-[10px] font-mono">{formatTime(duration)}</span>
         </div>
 
-        {/* Mengubah iFrame Menggunakan Style 1x1px Agar API Deteksi Waktu Berjalan */}
-        {currentTrack.videoId && (
-          <iframe
-            ref={iframeRef}
-            style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
-            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${currentOrigin}`}
-            allow="autoplay; encrypted-media"
-            title="YouTube Hidden Audio Engine"
-          />
-        )}
+        {/* Container Official API Target Element */}
+        <div className="absolute opacity-0 pointer-events-none" style={{ width: '1px', height: '1px' }}>
+          <div id="yt-player-bottom"></div>
+        </div>
       </div>
     );
   }
@@ -288,7 +316,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <AudioVisualizer isPlaying={isPlaying} />
         </div>
 
-        {/* Progress Bar Utama di Halaman Musik */}
+        {/* Progress Bar Utama */}
         <div className="w-full mt-6 flex flex-col gap-1 px-4">
           <input 
             type="range"
@@ -311,15 +339,10 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
         </div>
       </div>
 
-      {currentTrack.videoId && (
-        <iframe
-          ref={iframeRef}
-          style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
-          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${currentOrigin}`}
-          allow="autoplay; encrypted-media"
-          title="YouTube Hidden Audio Engine Main"
-        />
-      )}
+      {/* Container Official API Target Element Main */}
+      <div className="absolute opacity-0 pointer-events-none" style={{ width: '1px', height: '1px' }}>
+        <div id="yt-player-main"></div>
+      </div>
     </div>
   );
 };
@@ -335,11 +358,10 @@ const ProfilePage = () => {
   const [currentTrack, setCurrentTrack] = useState({
     title: "Mind Games",
     artist: "Sickick",
-    videoId: "", 
+    videoId: "m2nA875fXW4", // Kita kasih default ID video biar pas dibuka langsung ada lagu valid
     cover: "/album-cover.jpg"
   });
 
-  // Logika Deteksi Fitur Download Aplikasi Web Langsung (PWA Engine)
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -481,7 +503,7 @@ const ProfilePage = () => {
               <span className="font-medium text-sm">Follow on Twitter or X</span>
             </a>
 
-            {/* FITUR DOWNLOAD APK INSTAN (Hanya Muncul jika Browser Mendukung PWA) */}
+            {/* Tombol PWA Unduh APK Langsung */}
             {showInstallBtn && (
               <button 
                 onClick={handleInstallApp}
