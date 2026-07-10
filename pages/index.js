@@ -1,7 +1,7 @@
 import { Instagram, Youtube, Twitter, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
-// Sparkle Component - Ditambah animasi gerak acak (floating) dan kedip (twinkle)
+// Sparkle Component - Dengan animasi melayang acak dan kedip bintang kustom
 const Sparkle = ({ style, color }) => (
   <div
     className="absolute rounded-full pointer-events-none dynamic-sparkle"
@@ -13,7 +13,7 @@ const Sparkle = ({ style, color }) => (
   />
 );
 
-// CSS Visualizer Bar Component
+// Audio Visualizer Component (Melompat-lompat saat lagu dimainkan)
 const AudioVisualizer = ({ isPlaying }) => {
   return (
     <div className="flex items-end justify-center gap-1 h-8 mt-2 px-2">
@@ -37,13 +37,16 @@ const AudioVisualizer = ({ isPlaying }) => {
   );
 };
 
-// Audio Player Component with Search Capability
+// Audio Player Component dengan Pencarian Google API Resmi
 const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, audioRef }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Menggunakan Google API Key milikmu langsung
+  const YOUTUBE_API_KEY = "AIzaSyDcYX3MXSm5WLwX7Kx_klCdA2cDhvYG04U";
 
   const formatTime = (time) => {
     if (isNaN(time)) return "0:00";
@@ -82,13 +85,22 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
 
     setIsLoading(true);
     try {
-      const response = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoCategoryId=10&maxResults=5&key=${YOUTUBE_API_KEY}`
+      );
       const data = await response.json();
+      
       if (data && data.items) {
-        setSearchResults(data.items.slice(0, 5));
+        const mappedResults = data.items.map(item => ({
+          title: item.snippet.title,
+          uploaderName: item.snippet.channelTitle,
+          thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || "/album-cover.jpg",
+          videoId: item.id.videoId
+        }));
+        setSearchResults(mappedResults);
       }
     } catch (error) {
-      console.error("Gagal melakukan pencarian musik:", error);
+      console.error("Gagal melakukan pencarian via YouTube API:", error);
     } finally {
       setIsLoading(false);
     }
@@ -97,16 +109,30 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   const selectTrack = async (item) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`https://pipedapi.kavin.rocks/streams/${item.url.split("v=")[1]}`);
+      const videoId = item.videoId;
+      
+      // Menggunakan extract tools stabil berbasis Post JSON untuk mengambil source audio langsung
+      const res = await fetch("https://api.cobalt.tools/api/json", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          downloadMode: "audio",
+          audioFormat: "mp3"
+        })
+      });
+      
       const streamData = await res.json();
-      const audioStream = streamData.audioStreams?.find(stream => stream.mimeType.includes("audio/webm")) || streamData.audioStreams?.[0];
 
-      if (audioStream && audioStream.url) {
+      if (streamData && streamData.url) {
         setCurrentTrack({
           title: item.title,
           artist: item.uploaderName || "Unknown Artist",
-          src: audioStream.url,
-          cover: item.thumbnail || "/album-cover.jpg"
+          src: streamData.url,
+          cover: item.thumbnail
         });
         setIsPlaying(true);
         setTimeout(() => {
@@ -115,6 +141,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             audioRef.current.play().catch(err => console.log("Auto-play blocked:", err));
           }
         }, 100);
+      } else {
+        alert("Gagal memuat audio dari lagu ini, coba lagu yang lain.");
       }
     } catch (error) {
       console.error("Gagal memuat stream audio:", error);
@@ -135,7 +163,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
               onError={(e) => e.target.src = "/album-cover.jpg"}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-white font-medium text-sm truncate">{currentTrack.title}</p>
+              <p className="text-white font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: currentTrack.title }}></p>
               <p className="text-gray-400 text-xs truncate">{currentTrack.artist}</p>
             </div>
           </div>
@@ -161,7 +189,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
         >
-          <source src={currentTrack.src} type="audio/webm" />
+          <source src={currentTrack.src} type="audio/mpeg" />
         </audio>
       </div>
     );
@@ -206,7 +234,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
                   onError={(e) => e.target.src = "/album-cover.jpg"}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-white">{item.title}</p>
+                  <p className="text-sm font-medium truncate text-white" dangerouslySetInnerHTML={{ __html: item.title }}></p>
                   <p className="text-xs text-gray-400 truncate">{item.uploaderName || "Unknown"}</p>
                 </div>
               </div>
@@ -223,7 +251,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             className={`w-40 h-40 rounded-xl object-cover mb-4 border-2 border-red-500/30 shadow-lg transition-transform duration-500 ${isPlaying ? 'animate-pulse scale-102' : ''}`}
             onError={(e) => e.target.src = "/album-cover.jpg"}
           />
-          <h2 className="text-2xl font-bold truncate max-w-full px-4">{currentTrack.title}</h2>
+          <h2 className="text-2xl font-bold truncate max-w-full px-4" dangerouslySetInnerHTML={{ __html: currentTrack.title }}></h2>
           <p className="text-gray-400 truncate max-w-full px-4 mb-2">{currentTrack.artist}</p>
           
           <AudioVisualizer isPlaying={isPlaying} />
@@ -255,7 +283,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       >
-        <source src={currentTrack.src} type="audio/webm" />
+        <source src={currentTrack.src} type="audio/mpeg" />
       </audio>
     </div>
   );
@@ -371,7 +399,7 @@ const ProfilePage = () => {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-extrabold tracking-wide text-white mb-2 drop-shadow-md">
-              RIDHA SUKA HUTAO
+              RIDHA SUKA HUTOO
             </h1>
             <p className="text-sm font-semibold text-red-200 uppercase tracking-widest mb-4">
               Web Developer & Digital Creator
