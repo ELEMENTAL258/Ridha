@@ -37,16 +37,89 @@ const AudioVisualizer = ({ isPlaying }) => {
   );
 };
 
-// Audio Player Component - Menggunakan Sistem Hidden iFrame Player Resmi YouTube
+// Audio Player Component - Mendukung Fitur Menit (Seek Slider) & YouTube Player API
 const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  
+  // State Baru untuk Progress Bar dan Waktu
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  
+  const iframeRef = useRef(null);
   const YOUTUBE_API_KEY = "AIzaSyDcYX3MXSm5WLwX7Kx_klCdA2cDhvYG04U";
+
+  // Memantau perkembangan waktu lagu via YouTube postMessage API
+  useEffect(() => {
+    let timer;
+    
+    // Fungsi mendengarkan response data dari iFrame YouTube
+    const handleYoutubeMessage = (event) => {
+      if (event.origin !== "https://www.youtube.com") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "infoDelivery" && data.info) {
+          if (data.info.currentTime !== undefined) {
+            setCurrentTime(data.info.currentTime);
+          }
+          if (data.info.duration !== undefined && data.info.duration > 0) {
+            setDuration(data.info.duration);
+          }
+        }
+      } catch (e) {
+        // Mengabaikan error parse jika format data non-JSON
+      }
+    };
+
+    window.addEventListener("message", handleYoutubeMessage);
+
+    if (isPlaying && currentTrack.videoId) {
+      // Melakukan polling berkala meminta data terkini dari iFrame YouTube
+      timer = setInterval(() => {
+        if (iframeRef.current && iframeRef.current.contentWindow) {
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: "command", func: "getPlayerState", args: [] }),
+            "*"
+          );
+        }
+      }, 1000);
+    }
+
+    return () => {
+      window.removeEventListener("message", handleYoutubeMessage);
+      clearInterval(timer);
+    };
+  }, [isPlaying, currentTrack.videoId]);
+
+  // Reset progress bar ketika lagu berganti
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+  }, [currentTrack.videoId]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  // Fungsi mengubah detik ke format menit:detik (00:00)
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return "00:00";
+    const minutes = Math.floor(secs / 60);
+    const seconds = Math.floor(secs % 60);
+    return `${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
+
+  // Logika ketika user menggeser progress bar
+  const handleSeekChange = (e) => {
+    const seekTarget = parseFloat(e.target.value);
+    setCurrentTime(seekTarget);
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: "seekTo", args: [seekTarget, true] }),
+        "*"
+      );
+    }
   };
 
   const handleSearch = async (e) => {
@@ -80,7 +153,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     setCurrentTrack({
       title: item.title,
       artist: item.uploaderName || "Unknown Artist",
-      videoId: item.videoId, // Kita simpan ID videonya langsung
+      videoId: item.videoId,
       cover: item.thumbnail
     });
     setIsPlaying(true);
@@ -88,8 +161,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
 
   if (!isMusicPage) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40 shadow-xl">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40 shadow-xl flex flex-col gap-2">
+        <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <img 
               src={currentTrack.cover} 
@@ -107,23 +180,48 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             <AudioVisualizer isPlaying={isPlaying} />
           </div>
 
+          {/* Progress Bar Mini untuk Bottom Player */}
+          <div className="flex-1 max-w-md hidden sm:flex items-center gap-2 px-2">
+            <span className="text-gray-400 text-xs font-mono">{formatTime(currentTime)}</span>
+            <input 
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleSeekChange}
+              className="flex-1 accent-red-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-gray-400 text-xs font-mono">{formatTime(duration)}</span>
+          </div>
+
           <div className="flex items-center justify-center">
             <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md font-bold text-sm hover:scale-105 transition-all">
               {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
-          <div className="text-red-400 text-xs hidden sm:block flex-1 text-right font-semibold animate-pulse">
-            {isPlaying ? "Streaming live via YouTube..." : "Player paused"}
-          </div>
         </div>
 
-        {/* Hidden Engine: Menggunakan iFrame YouTube tersembunyi */}
+        {/* Slider untuk layar HP (Mobile View) */}
+        <div className="w-full max-w-3xl mx-auto sm:hidden flex items-center gap-2 px-1">
+          <span className="text-gray-400 text-[10px] font-mono">{formatTime(currentTime)}</span>
+          <input 
+            type="range"
+            min="0"
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleSeekChange}
+            className="flex-1 accent-red-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+          />
+          <span className="text-gray-400 text-[10px] font-mono">{formatTime(duration)}</span>
+        </div>
+
         {currentTrack.videoId && (
           <iframe
+            ref={iframeRef}
             className="hidden"
             width="0"
             height="0"
-            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1`}
+            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0`}
             allow="autoplay; encrypted-media"
             title="YouTube Hidden Audio Engine"
           />
@@ -194,6 +292,22 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <AudioVisualizer isPlaying={isPlaying} />
         </div>
 
+        {/* Progress Bar Utama di Halaman Musik */}
+        <div className="w-full mt-6 flex flex-col gap-1 px-4">
+          <input 
+            type="range"
+            min="0"
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleSeekChange}
+            className="w-full accent-red-500 h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs font-mono text-gray-400 mt-1">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+
         <div className="flex justify-center items-center mt-6">
           <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600 hover:scale-105 transition-all">
             {isPlaying ? "⏸" : "▶"}
@@ -201,13 +315,13 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
         </div>
       </div>
 
-      {/* Hidden Engine: iFrame duplikat untuk halaman musik utama */}
       {currentTrack.videoId && (
         <iframe
+          ref={iframeRef}
           className="hidden"
           width="0"
           height="0"
-          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1`}
+          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0`}
           allow="autoplay; encrypted-media"
           title="YouTube Hidden Audio Engine Main"
         />
@@ -225,7 +339,7 @@ const ProfilePage = () => {
   const [currentTrack, setCurrentTrack] = useState({
     title: "Mind Games",
     artist: "Sickick",
-    videoId: "", // Kosong berarti default (atau jika ingin bisa pakai ID video YouTube milik Mind Games)
+    videoId: "", 
     cover: "/album-cover.jpg"
   });
 
