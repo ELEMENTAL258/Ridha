@@ -1,13 +1,42 @@
 import { Instagram, Youtube, Twitter, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
-// Sparkle Component
+// Sparkle Component - Ditambah animasi gerak acak (floating) dan kedip (twinkle)
 const Sparkle = ({ style, color }) => (
   <div
-    className="absolute w-2 h-2 rounded-full animate-twinkle"
-    style={{ ...style, backgroundColor: color }}
+    className="absolute rounded-full pointer-events-none dynamic-sparkle"
+    style={{
+      ...style,
+      backgroundColor: color,
+      boxShadow: `0 0 8px ${color}`,
+    }}
   />
 );
+
+// CSS Visualizer Bar Component
+const AudioVisualizer = ({ isPlaying }) => {
+  return (
+    <div className="flex items-end justify-center gap-1 h-8 mt-2 px-2">
+      {[...Array(12)].map((_, i) => {
+        // Membuat variasi durasi animasi acak untuk tiap bar
+        const duration = 0.5 + Math.random() * 0.8;
+        return (
+          <div
+            key={i}
+            className="w-1.5 bg-gradient-to-t from-red-500 to-amber-400 rounded-t transition-all origin-bottom"
+            style={{
+              animation: isPlaying 
+                ? `bounceVisualizer ${duration}s ease-in-out infinite alternate` 
+                : 'none',
+              height: isPlaying ? '100%' : '4px',
+              animationDelay: `${i * 0.05}s`
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
 
 // Audio Player Component with Search Capability
 const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, audioRef }) => {
@@ -54,7 +83,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
 
     setIsLoading(true);
     try {
-      const response = await fetch(`https://api.piped.yt/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
+      // Menggunakan instance publik alternatif kavin rocks yang lebih update
+      const response = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`);
       const data = await response.json();
       if (data && data.items) {
         setSearchResults(data.items.slice(0, 5));
@@ -69,7 +99,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   const selectTrack = async (item) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`https://api.piped.yt/streams/${item.url.split("v=")[1]}`);
+      const res = await fetch(`https://pipedapi.kavin.rocks/streams/${item.url.split("v=")[1]}`);
       const streamData = await res.json();
       const audioStream = streamData.audioStreams?.find(stream => stream.mimeType.includes("audio/webm")) || streamData.audioStreams?.[0];
 
@@ -78,7 +108,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           title: item.title,
           artist: item.uploaderName || "Unknown Artist",
           src: audioStream.url,
-          cover: item.thumbnail || "https://files.catbox.moe/ul5kgd.jpg"
+          cover: item.thumbnail || "/album-cover.jpg" // Fallback ke album cover lokal
         });
         setIsPlaying(true);
         setTimeout(() => {
@@ -98,21 +128,27 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   if (!isMusicPage) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-3 z-40 shadow-xl">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <img 
               src={currentTrack.cover} 
               alt="Cover" 
               className="w-12 h-12 rounded-md object-cover border border-white/10"
-              onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+              onError={(e) => e.target.src = "/album-cover.jpg"}
             />
             <div className="min-w-0 flex-1">
               <p className="text-white font-medium text-sm truncate">{currentTrack.title}</p>
               <p className="text-gray-400 text-xs truncate">{currentTrack.artist}</p>
             </div>
           </div>
+          
+          {/* Mini Visualizer di bottom bar */}
+          <div className="hidden md:block w-24">
+            <AudioVisualizer isPlaying={isPlaying} />
+          </div>
+
           <div className="flex items-center justify-center">
-            <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md font-bold text-sm">
+            <button onClick={handlePlayPause} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-md font-bold text-sm hover:scale-105 transition-all">
               {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
@@ -135,8 +171,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 text-white">
-      <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-6">
+    <div className="max-w-3xl mx-auto px-4 py-8 text-white relative z-10">
+      <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-6 shadow-xl">
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative flex-1">
             <input
@@ -151,7 +187,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-red-500 hover:bg-red-600 disabled:bg-red-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1"
+            className="bg-red-500 hover:bg-red-600 disabled:bg-red-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1 transition-all"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cari"}
           </button>
@@ -170,7 +206,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
                   src={item.thumbnail} 
                   alt="Thumb" 
                   className="w-10 h-10 rounded object-cover"
-                  onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+                  onError={(e) => e.target.src = "/album-cover.jpg"}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate text-white">{item.title}</p>
@@ -182,17 +218,21 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
         )}
       </div>
 
-      <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800">
-        <div className="flex flex-col items-center text-center mb-6">
+      <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col items-center text-center mb-4">
           <img 
             src={currentTrack.cover} 
             alt="Track Artwork" 
-            className="w-32 h-32 rounded-xl object-cover mb-4 border-2 border-red-500/30 shadow-lg"
-            onError={(e) => e.target.src = "https://files.catbox.moe/ul5kgd.jpg"}
+            className={`w-40 h-40 rounded-xl object-cover mb-4 border-2 border-red-500/30 shadow-lg transition-transform duration-500 ${isPlaying ? 'animate-pulse scale-102' : ''}`}
+            onError={(e) => e.target.src = "/album-cover.jpg"}
           />
           <h2 className="text-2xl font-bold truncate max-w-full px-4">{currentTrack.title}</h2>
-          <p className="text-gray-400 truncate max-w-full px-4">{currentTrack.artist}</p>
+          <p className="text-gray-400 truncate max-w-full px-4 mb-2">{currentTrack.artist}</p>
+          
+          {/* Main Visualizer diletakkan di tengah panel musik */}
+          <AudioVisualizer isPlaying={isPlaying} />
         </div>
+
         <input
           type="range"
           min="0"
@@ -206,7 +246,7 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <span>{formatTime(duration)}</span>
         </div>
         <div className="flex justify-center items-center">
-          <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600">
+          <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600 hover:scale-105 transition-all">
             {isPlaying ? "⏸" : "▶"}
           </button>
         </div>
@@ -235,23 +275,35 @@ const ProfilePage = () => {
     title: "Mind Games",
     artist: "Sicksick",
     src: "/bgm.mp3",
-    cover: "https://files.catbox.moe/ul5kgd.jpg"
+    cover: "/album-cover.jpg" // Menggunakan file lokal dari folder public kamu
   });
   const audioRef = useRef(null);
 
   useEffect(() => {
-    const colors = ["white", "lightblue", "yellow"];
+    const colors = ["#ffffff", "#93c5fd", "#fef08a", "#fca5a5"];
     const generateSparkles = () => {
-      const newSparkles = Array.from({ length: 30 }, (_, i) => ({
-        id: i,
-        style: {
-          top: `${Math.random() * 100}vh`,
-          left: `${Math.random() * 100}vw`,
-          animationDelay: `${Math.random() * 2}s`,
-          opacity: Math.random(),
-        },
-        color: colors[Math.floor(Math.random() * colors.length)],
-      }));
+      const newSparkles = Array.from({ length: 45 }, (_, i) => {
+        const size = Math.random() * 3 + 2; // Ukuran bintik bervariasi (2px - 5px)
+        const moveX = (Math.random() - 0.5) * 50; // Jarak gerak horizontal acak
+        const moveY = (Math.random() - 0.5) * 50; // Jarak gerak vertikal acak
+        const durationFloat = 4 + Math.random() * 6; // Kecepatan gerak melayang acak (4s - 10s)
+        const durationTwinkle = 1 + Math.random() * 2; // Kecepatan kedip acak (1s - 3s)
+
+        return {
+          id: i,
+          style: {
+            top: `${Math.random() * 100}vh`,
+            left: `${Math.random() * 100}vw`,
+            width: `${size}px`,
+            height: `${size}px`,
+            animation: `twinkleAnimation ${durationTwinkle}s ease-in-out infinite alternate, floatAnimation ${durationFloat}s ease-in-out infinite alternate`,
+            '--move-x': `${moveX}px`,
+            '--move-y': `${moveY}px`,
+            opacity: Math.random() * 0.7 + 0.3,
+          },
+          color: colors[Math.floor(Math.random() * colors.length)],
+        };
+      });
       setSparkles(newSparkles);
     };
     generateSparkles();
@@ -283,19 +335,41 @@ const ProfilePage = () => {
   );
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-800 to-red-600 pb-32 font-sans selection:bg-red-500 selection:text-white">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-900 to-red-800 pb-32 font-sans selection:bg-red-500 selection:text-white">
+      {/* CSS Injection untuk menangani animasi kustom bintang & visualizer */}
+      <style jsx global>{`
+        @keyframes twinkleAnimation {
+          0% { opacity: 0.2; transform: scale(0.8); }
+          100% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes floatAnimation {
+          0% { translate: 0px 0px; }
+          100% { translate: var(--move-x) var(--move-y); }
+        }
+        @keyframes bounceVisualizer {
+          0% { transform: scaleY(0.1); }
+          100% { transform: scaleY(1); }
+        }
+        .dynamic-sparkle {
+          will-change: transform, opacity;
+        }
+      `}</style>
+
       <Navigation />
 
-      {sparkles.map((sparkle) => (
-        <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
-      ))}
+      {/* Background Bintang Bergerak Random & Kedip */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {sparkles.map((sparkle) => (
+          <Sparkle key={sparkle.id} style={sparkle.style} color={sparkle.color} />
+        ))}
+      </div>
 
       {currentPage === "beranda" ? (
         <main className="max-w-xl mx-auto px-4 pt-24 pb-12 relative z-10 flex flex-col items-center">
           <div className="relative mb-6 group">
             <div className="absolute inset-0 bg-red-400 rounded-full blur-xl opacity-60 animate-pulse" />
             <img
-              src="https://files.catbox.moe/ul5kgd.jpg"
+              src="/album-cover.jpg" // Menggunakan file album-cover di profil juga agar senada
               alt="Profile Picture"
               className="relative rounded-full shadow-2xl border-4 border-white w-40 h-40 object-cover"
             />
