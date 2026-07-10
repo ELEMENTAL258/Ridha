@@ -1,4 +1,3 @@
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Instagram, Youtube, Twitter, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -91,7 +90,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
       }
     } catch (error) {
       console.error("Gagal memuat stream audio:", error);
-      alert("Gagal memutar lagu ini, silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
@@ -286,7 +284,6 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-800 to-red-600 pb-32 font-sans selection:bg-red-500 selection:text-white">
-      <SpeedInsights />
       <Navigation />
 
       {sparkles.map((sparkle) => (
