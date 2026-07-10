@@ -1,7 +1,7 @@
 import { Instagram, Youtube, Twitter, Home, Music, Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
-// Sparkle Component - Dengan animasi melayang acak dan kedip bintang kustom
+// Sparkle Component
 const Sparkle = ({ style, color }) => (
   <div
     className="absolute rounded-full pointer-events-none dynamic-sparkle"
@@ -13,7 +13,7 @@ const Sparkle = ({ style, color }) => (
   />
 );
 
-// Audio Visualizer Component (Melompat-lompat saat lagu dimainkan)
+// Audio Visualizer Component
 const AudioVisualizer = ({ isPlaying }) => {
   return (
     <div className="flex items-end justify-center gap-1 h-8 mt-2 px-2">
@@ -37,46 +37,16 @@ const AudioVisualizer = ({ isPlaying }) => {
   );
 };
 
-// Audio Player Component dengan Pencarian Google API Resmi
-const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, audioRef }) => {
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+// Audio Player Component - Menggunakan Sistem Hidden iFrame Player Resmi YouTube
+const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Menggunakan Google API Key milikmu langsung
   const YOUTUBE_API_KEY = "AIzaSyDcYX3MXSm5WLwX7Kx_klCdA2cDhvYG04U";
 
-  const formatTime = (time) => {
-    if (isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-  };
-
-  const handlePlayPause = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    try {
-      if (isPlaying) {
-        audio.pause();
-      } else {
-        await audio.play();
-      }
-      setIsPlaying(!isPlaying);
-    } catch (error) {
-      console.log('Play/pause error:', error);
-    }
-  };
-
-  const handleSeek = (e) => {
-    const audio = audioRef.current;
-    if (audio) {
-      const newTime = parseFloat(e.target.value);
-      audio.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
   };
 
   const handleSearch = async (e) => {
@@ -106,59 +76,14 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     }
   };
 
-  const selectTrack = async (item) => {
-    setIsLoading(true);
-    try {
-      const videoId = item.videoId;
-      
-      // Menggunakan alternatif extractor stream berbasis ID YouTube yang bypass CORS browser
-      const res = await fetch(`https://api.v2.sonis.web.id/download?id=${videoId}`);
-      const streamData = await res.json();
-
-      // Memastikan tautan MP3-nya tersedia dari respons API
-      if (streamData && streamData.result && streamData.result.mp3) {
-        setCurrentTrack({
-          title: item.title,
-          artist: item.uploaderName || "Unknown Artist",
-          src: streamData.result.mp3, // File audio mp3 murni langsung disetel
-          cover: item.thumbnail
-        });
-        setIsPlaying(true);
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.load();
-            audioRef.current.play().catch(err => console.log("Auto-play blocked:", err));
-          }
-        }, 100);
-      } else {
-        // Fallback cadangan jika endpoint pertama gagal merespons dengan cepat
-        const fallbackRes = await fetch(`https://api.wizz.biz.id/api/ytmp3?url=https://www.youtube.com/watch?v=${videoId}`);
-        const fallbackData = await fallbackRes.json();
-        
-        if (fallbackData && fallbackData.url) {
-          setCurrentTrack({
-            title: item.title,
-            artist: item.uploaderName || "Unknown Artist",
-            src: fallbackData.url,
-            cover: item.thumbnail
-          });
-          setIsPlaying(true);
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.load();
-              audioRef.current.play().catch(err => console.log("Auto-play blocked:", err));
-            }
-          }, 100);
-        } else {
-          alert("Gagal memuat audio dari lagu ini, coba lagu yang lain.");
-        }
-      }
-    } catch (error) {
-      console.error("Gagal memuat stream audio:", error);
-      alert("Terjadi kendala jaringan saat memuat lagu.");
-    } finally {
-      setIsLoading(false);
-    }
+  const selectTrack = (item) => {
+    setCurrentTrack({
+      title: item.title,
+      artist: item.uploaderName || "Unknown Artist",
+      videoId: item.videoId, // Kita simpan ID videonya langsung
+      cover: item.thumbnail
+    });
+    setIsPlaying(true);
   };
 
   if (!isMusicPage) {
@@ -187,20 +112,22 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
               {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
-          <div className="text-white text-xs hidden sm:block flex-1 text-right">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <div className="text-red-400 text-xs hidden sm:block flex-1 text-right font-semibold animate-pulse">
+            {isPlaying ? "Streaming live via YouTube..." : "Player paused"}
           </div>
         </div>
-        <audio
-          ref={audioRef}
-          key={currentTrack.src}
-          onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-          onLoadedMetadata={(e) => setDuration(e.target.duration)}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-        >
-          <source src={currentTrack.src} type="audio/mpeg" />
-        </audio>
+
+        {/* Hidden Engine: Menggunakan iFrame YouTube tersembunyi */}
+        {currentTrack.videoId && (
+          <iframe
+            className="hidden"
+            width="0"
+            height="0"
+            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1`}
+            allow="autoplay; encrypted-media"
+            title="YouTube Hidden Audio Engine"
+          />
+        )}
       </div>
     );
   }
@@ -262,39 +189,29 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
             onError={(e) => e.target.src = "/album-cover.jpg"}
           />
           <h2 className="text-2xl font-bold truncate max-w-full px-4" dangerouslySetInnerHTML={{ __html: currentTrack.title }}></h2>
-          <p className="text-gray-400 truncate max-w-full px-4 mb-2">{currentTrack.artist}</p>
+          <p className="text-gray-400 truncate max-w-full px-4 mb-4">{currentTrack.artist}</p>
           
           <AudioVisualizer isPlaying={isPlaying} />
         </div>
 
-        <input
-          type="range"
-          min="0"
-          max={duration || 100}
-          value={currentTime}
-          onChange={handleSeek}
-          className="w-full accent-red-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer mb-2"
-        />
-        <div className="flex justify-between text-xs text-gray-400 mb-6">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-        <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center mt-6">
           <button onClick={handlePlayPause} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-red-600 hover:scale-105 transition-all">
             {isPlaying ? "⏸" : "▶"}
           </button>
         </div>
       </div>
-      <audio
-        ref={audioRef}
-        key={currentTrack.src}
-        onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.target.duration)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      >
-        <source src={currentTrack.src} type="audio/mpeg" />
-      </audio>
+
+      {/* Hidden Engine: iFrame duplikat untuk halaman musik utama */}
+      {currentTrack.videoId && (
+        <iframe
+          className="hidden"
+          width="0"
+          height="0"
+          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1`}
+          allow="autoplay; encrypted-media"
+          title="YouTube Hidden Audio Engine Main"
+        />
+      )}
     </div>
   );
 };
@@ -307,11 +224,10 @@ const ProfilePage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState({
     title: "Mind Games",
-    artist: "Sicksick",
-    src: "/bgm.mp3",
+    artist: "Sickick",
+    videoId: "", // Kosong berarti default (atau jika ingin bisa pakai ID video YouTube milik Mind Games)
     cover: "/album-cover.jpg"
   });
-  const audioRef = useRef(null);
 
   useEffect(() => {
     const colors = ["#ffffff", "#93c5fd", "#fef08a", "#fca5a5"];
@@ -439,7 +355,6 @@ const ProfilePage = () => {
             setCurrentTrack={setCurrentTrack}
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
-            audioRef={audioRef}
           />
         </main>
       )}
@@ -451,7 +366,6 @@ const ProfilePage = () => {
           setCurrentTrack={setCurrentTrack}
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
-          audioRef={audioRef}
         />
       )}
     </div>
