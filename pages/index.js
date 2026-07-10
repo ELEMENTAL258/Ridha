@@ -37,24 +37,22 @@ const AudioVisualizer = ({ isPlaying }) => {
   );
 };
 
-// Audio Player Component - Mendukung Fitur Menit (Seek Slider) & YouTube Player API
+// Audio Player Component - Mendukung Fitur Menit (Seek Slider) & YouTube Player API FIX
 const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPlaying, setIsPlaying }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // State Baru untuk Progress Bar dan Waktu
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   
   const iframeRef = useRef(null);
   const YOUTUBE_API_KEY = "AIzaSyDcYX3MXSm5WLwX7Kx_klCdA2cDhvYG04U";
 
-  // Memantau perkembangan waktu lagu via YouTube postMessage API
+  // Memantau perkembangan waktu lagu via YouTube postMessage API (Aman dari Hidden Iframe block)
   useEffect(() => {
     let timer;
     
-    // Fungsi mendengarkan response data dari iFrame YouTube
     const handleYoutubeMessage = (event) => {
       if (event.origin !== "https://www.youtube.com") return;
       try {
@@ -75,7 +73,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     window.addEventListener("message", handleYoutubeMessage);
 
     if (isPlaying && currentTrack.videoId) {
-      // Melakukan polling berkala meminta data terkini dari iFrame YouTube
       timer = setInterval(() => {
         if (iframeRef.current && iframeRef.current.contentWindow) {
           iframeRef.current.contentWindow.postMessage(
@@ -92,7 +89,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     };
   }, [isPlaying, currentTrack.videoId]);
 
-  // Reset progress bar ketika lagu berganti
   useEffect(() => {
     setCurrentTime(0);
     setDuration(0);
@@ -102,7 +98,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     setIsPlaying(!isPlaying);
   };
 
-  // Fungsi mengubah detik ke format menit:detik (00:00)
   const formatTime = (secs) => {
     if (isNaN(secs)) return "00:00";
     const minutes = Math.floor(secs / 60);
@@ -110,7 +105,6 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     return `${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  // Logika ketika user menggeser progress bar
   const handleSeekChange = (e) => {
     const seekTarget = parseFloat(e.target.value);
     setCurrentTime(seekTarget);
@@ -158,6 +152,9 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     });
     setIsPlaying(true);
   };
+
+  // Objek Origin URL Dinamis agar YouTube API Valid
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
   if (!isMusicPage) {
     return (
@@ -215,13 +212,12 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           <span className="text-gray-400 text-[10px] font-mono">{formatTime(duration)}</span>
         </div>
 
+        {/* Mengubah iFrame Menggunakan Style 1x1px Agar API Deteksi Waktu Berjalan */}
         {currentTrack.videoId && (
           <iframe
             ref={iframeRef}
-            className="hidden"
-            width="0"
-            height="0"
-            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0`}
+            style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
+            src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${currentOrigin}`}
             allow="autoplay; encrypted-media"
             title="YouTube Hidden Audio Engine"
           />
@@ -318,10 +314,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
       {currentTrack.videoId && (
         <iframe
           ref={iframeRef}
-          className="hidden"
-          width="0"
-          height="0"
-          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0`}
+          style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
+          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${currentOrigin}`}
           allow="autoplay; encrypted-media"
           title="YouTube Hidden Audio Engine Main"
         />
@@ -334,6 +328,8 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
 const ProfilePage = () => {
   const [sparkles, setSparkles] = useState([]);
   const [currentPage, setCurrentPage] = useState("beranda");
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState({
@@ -342,6 +338,31 @@ const ProfilePage = () => {
     videoId: "", 
     cover: "/album-cover.jpg"
   });
+
+  // Logika Deteksi Fitur Download Aplikasi Web Langsung (PWA Engine)
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     const colors = ["#ffffff", "#93c5fd", "#fef08a", "#fca5a5"];
@@ -459,6 +480,16 @@ const ProfilePage = () => {
             <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
               <span className="font-medium text-sm">Follow on Twitter or X</span>
             </a>
+
+            {/* FITUR DOWNLOAD APK INSTAN (Hanya Muncul jika Browser Mendukung PWA) */}
+            {showInstallBtn && (
+              <button 
+                onClick={handleInstallApp}
+                className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 p-4 rounded-xl text-white font-bold shadow-lg transition-all border border-white/25 animate-pulse mt-4"
+              >
+                <span>📲 Download & Instal Aplikasi Website</span>
+              </button>
+            )}
           </div>
         </main>
       ) : (
