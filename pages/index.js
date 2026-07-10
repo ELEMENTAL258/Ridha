@@ -111,27 +111,16 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
     try {
       const videoId = item.videoId;
       
-      // Menggunakan extract tools stabil berbasis Post JSON untuk mengambil source audio langsung
-      const res = await fetch("https://api.cobalt.tools/api/json", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-          downloadMode: "audio",
-          audioFormat: "mp3"
-        })
-      });
-      
+      // Menggunakan alternatif extractor stream berbasis ID YouTube yang bypass CORS browser
+      const res = await fetch(`https://api.v2.sonis.web.id/download?id=${videoId}`);
       const streamData = await res.json();
 
-      if (streamData && streamData.url) {
+      // Memastikan tautan MP3-nya tersedia dari respons API
+      if (streamData && streamData.result && streamData.result.mp3) {
         setCurrentTrack({
           title: item.title,
           artist: item.uploaderName || "Unknown Artist",
-          src: streamData.url,
+          src: streamData.result.mp3, // File audio mp3 murni langsung disetel
           cover: item.thumbnail
         });
         setIsPlaying(true);
@@ -142,10 +131,31 @@ const AudioPlayer = ({ isMusicPage = false, currentTrack, setCurrentTrack, isPla
           }
         }, 100);
       } else {
-        alert("Gagal memuat audio dari lagu ini, coba lagu yang lain.");
+        // Fallback cadangan jika endpoint pertama gagal merespons dengan cepat
+        const fallbackRes = await fetch(`https://api.wizz.biz.id/api/ytmp3?url=https://www.youtube.com/watch?v=${videoId}`);
+        const fallbackData = await fallbackRes.json();
+        
+        if (fallbackData && fallbackData.url) {
+          setCurrentTrack({
+            title: item.title,
+            artist: item.uploaderName || "Unknown Artist",
+            src: fallbackData.url,
+            cover: item.thumbnail
+          });
+          setIsPlaying(true);
+          setTimeout(() => {
+            if (audioRef.current) {
+              audioRef.current.load();
+              audioRef.current.play().catch(err => console.log("Auto-play blocked:", err));
+            }
+          }, 100);
+        } else {
+          alert("Gagal memuat audio dari lagu ini, coba lagu yang lain.");
+        }
       }
     } catch (error) {
       console.error("Gagal memuat stream audio:", error);
+      alert("Terjadi kendala jaringan saat memuat lagu.");
     } finally {
       setIsLoading(false);
     }
@@ -399,7 +409,7 @@ const ProfilePage = () => {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-extrabold tracking-wide text-white mb-2 drop-shadow-md">
-              RIDHA SUKA HUTOO
+              RIDHA SUKA HUTAO
             </h1>
             <p className="text-sm font-semibold text-red-200 uppercase tracking-widest mb-4">
               Web Developer & Digital Creator
