@@ -493,14 +493,14 @@ const ProfilePage = () => {
           </div>
 
           <div className="w-full space-y-3">
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
+            <a href="https://www.instagram.com/fathy_847?igsh=MWQ2dWhiMWdpam5qOA==" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
               <span className="font-medium text-sm">Follow on Instagram</span>
             </a>
             <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
               <span className="font-medium text-sm">Subscribe on YouTube</span>
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
-              <span className="font-medium text-sm">Follow on Twitter or X</span>
+            <a href="https://whatsapp.com/channel/0029VasouxcCnA7m0d2k9v0P" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
+              <span className="font-medium text-sm">Follow Saluran WA</span>
             </a>
 
             {/* Tombol PWA Unduh APK Langsung */}
