@@ -356,8 +356,8 @@ const ProfilePage = () => {
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState({
-    title: "Mind Games",
-    artist: "Sickick",
+    title: "cari lagu dipencarian",
+    artist: "Fathur Ridha",
     videoId: "m2nA875fXW4", // Kita kasih default ID video biar pas dibuka langsung ada lagu valid
     cover: "/album-cover.jpg"
   });
