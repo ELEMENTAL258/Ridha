@@ -483,13 +483,13 @@ const ProfilePage = () => {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-extrabold tracking-wide text-white mb-2 drop-shadow-md">
-              RIDHA SUKA HUTAO
+              FATHUR RIDHA IPB BOYS
             </h1>
             <p className="text-sm font-semibold text-red-200 uppercase tracking-widest mb-4">
               Web Developer & Digital Creator
             </p>
             <div className="bg-black/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10 text-red-50 text-sm leading-relaxed text-left shadow-inner">
-              Hai! Namaku Ridha, dan aku adalah seorang web developer dan pengembang bot WhatsApp pemula. Aku memiliki pengalaman dari teman-teman saya yang mengajarkan dan belajar otodidak. Karena rasa penasaran dan keinginan mempelajari hal baru, aku jadi semangat belajar hal baru.
+              Hai! Namaku Ridha. Aku adalah Mahasiswa IPB University angkatan 63 pada Departemen Statistika dan Sains Data, dan aku adalah seorang web developer dan pengembang bot WhatsApp serta konten kreator. Aku memiliki pengalaman dari belajar otodidak. Karena rasa penasaran dan keinginan mempelajari hal baru, aku jadi semangat belajar hal baru.
             </div>
           </div>
 
@@ -498,10 +498,10 @@ const ProfilePage = () => {
               <span className="font-medium text-sm">Follow on Instagram</span>
             </a>
             <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
-              <span className="font-medium text-sm">Subscribe on YouTube</span>
+              <span className="font-medium text-sm">Subscribe (linknya belum ada)</span>
             </a>
-            <a href="https://whatsapp.com/channel/0029VasouxcCnA7m0d2k9v0P" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
-              <span className="font-medium text-sm">Follow Saluran WA</span>
+            <a href="https://whatsapp.com/channel/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 backdrop-blur-md p-4 rounded-xl text-white transition-all border border-white/10">
+              <span className="font-medium text-sm">Follow Saluran WA?</span>
             </a>
 
             {/* Tombol PWA Unduh APK Langsung */}
