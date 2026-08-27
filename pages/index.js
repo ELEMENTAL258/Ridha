@@ -387,7 +387,8 @@ const ProfilePage = () => {
   };
 
   useEffect(() => {
-    const colors = ["#ffffff", "#93c5fd", "#fef08a", "#fca5a5"];
+    // Sparkle putih & biru muda, kesan kelap-kelip malam berbintang
+    const colors = ["#ffffff", "#bfdbfe", "#93c5fd", "#dbeafe"];
     const generateSparkles = () => {
       const newSparkles = Array.from({ length: 45 }, (_, i) => {
         const size = Math.random() * 3 + 2;
@@ -442,7 +443,7 @@ const ProfilePage = () => {
   );
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-red-950 via-red-900 to-red-800 pb-32 font-sans selection:bg-red-500 selection:text-white">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-blue-950 via-blue-900 to-slate-800 pb-32 font-sans selection:bg-blue-500 selection:text-white">
       <style jsx global>{`
         @keyframes twinkleAnimation {
           0% { opacity: 0.2; transform: scale(0.8); }
@@ -472,9 +473,9 @@ const ProfilePage = () => {
       {currentPage === "beranda" ? (
         <main className="max-w-xl mx-auto px-4 pt-24 pb-12 relative z-10 flex flex-col items-center">
           <div className="relative mb-6 group">
-            <div className="absolute inset-0 bg-red-400 rounded-full blur-xl opacity-60 animate-pulse" />
+            <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-60 animate-pulse" />
             <img
-              src="https://files.catbox.moe/ul5kgd.jpg"
+              src="/photo-utama.jpeg"
               alt="Profile Picture"
               className="relative rounded-full shadow-2xl border-4 border-white w-40 h-40 object-cover"
             />
